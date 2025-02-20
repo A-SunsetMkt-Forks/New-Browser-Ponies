@@ -28,6 +28,7 @@ if (typeof (BrowserPonies) !== "object") {
     // Debug Mode
     const tinyDebugMode = searchParams.get("BrowserPoniesDebug") == "true" ? true : false;
     const tinyDebugModeLayer2 = searchParams.get("BrowserPoniesDebugLayer2") == "true" ? true : false;
+    const tinyCharacterDebug = searchParams.get("BrowserPoniesDebugCharacter") == "true" ? true : false;
 
     // Shims:
     (function () {
@@ -1589,12 +1590,23 @@ if (typeof (BrowserPonies) !== "object") {
         var PonyInstance = function PonyInstance(pony) {
             this.pony = pony;
             this.img = this.createImage();
+            this.ai_disabled = false;
 
             this.clear();
         };
 
         PonyInstance.prototype = extend(new Instance(), {
+            printLog: function () {
+                if (tinyCharacterDebug) {
+                    const args = [];
+                    for (const index in arguments)
+                        args.push(arguments[index]);
+                    args[0] = `[BrowserPonies] [${this.name()}] [${String(args[0])}]`;
+                    console.log.apply(console, args);
+                }
+            },
             createImage: function () {
+                this.printLog('createImage');
                 var touch = function (evt) {
                     evt.preventDefault();
                     if (evt.touches.length > 1 || (evt.type === "touchend" && evt.touches.length > 0))
@@ -1732,6 +1744,7 @@ if (typeof (BrowserPonies) !== "object") {
                 return this.pony.name;
             },
             unspawn: function () {
+                this.printLog('unspawn');
                 var currentTime = Date.now();
                 if (this.effects) {
                     for (var i = 0, n = this.effects.length; i < n; ++i) {
@@ -1749,6 +1762,7 @@ if (typeof (BrowserPonies) !== "object") {
                 removeAll(instances, this);
             },
             clear: function () {
+                this.printLog('clear');
                 if (this.effects) {
                     for (var i = 0, n = this.effects.length; i < n; ++i) {
                         this.effects[i].clear();
@@ -1777,6 +1791,7 @@ if (typeof (BrowserPonies) !== "object") {
                 this.repeating = [];
             },
             interact: function (currentTime, interaction, targets) {
+                this.printLog('interact', currentTime, interaction, targets);
                 var pony, behavior = randomSelect(interaction.behaviors);
                 this.behave(this.pony.behaviors_by_name[behavior]);
                 for (var i = 0, n = targets.length; i < n; ++i) {
@@ -1788,6 +1803,7 @@ if (typeof (BrowserPonies) !== "object") {
                 this.interaction_targets = targets;
             },
             speak: function (currentTime, speech) {
+                this.printLog('speak', currentTime, speech);
                 if (dontSpeak) return;
                 if (speech.text) {
                     var duration = Math.max(speech.text.length * 150, 1000);
@@ -1836,6 +1852,7 @@ if (typeof (BrowserPonies) !== "object") {
                 var curr = this.rect();
                 var dest = null;
                 var dist;
+                ////////////////////////////////
                 if (this.following) {
                     if (this.following.img.parentNode) {
                         dest = this.dest_position;
@@ -2013,6 +2030,7 @@ if (typeof (BrowserPonies) !== "object") {
                 }
             },
             getNearestInstance: function (name) {
+                this.printLog('getNearestInstance', name);
                 var nearObjects = [];
                 var pos = this.position();
                 var pony = ponies[name];
@@ -2045,6 +2063,7 @@ if (typeof (BrowserPonies) !== "object") {
                 return nearObjects[0][1];
             },
             nextBehavior: function (breaklink) {
+                this.printLog('nextBehavior', breaklink);
                 var offscreen = this.isOffscreen();
                 if (!breaklink && this.current_behavior && this.current_behavior.linked) {
                     this.behave(this.current_behavior.linked, offscreen);
@@ -2069,6 +2088,7 @@ if (typeof (BrowserPonies) !== "object") {
             },
             setFacingRight: Gecko ?
                 function (value) {
+                    this.printLog('setFacingRight 1', value);
                     this.facing_right = value;
                     var newimg;
                     if (value) {
@@ -2091,6 +2111,7 @@ if (typeof (BrowserPonies) !== "object") {
                         this.img = img;
                     }
                 } : function (value) {
+                    this.printLog('setFacingRight 2', value);
                     this.facing_right = value;
                     var newimg;
                     if (value) {
@@ -2107,6 +2128,7 @@ if (typeof (BrowserPonies) !== "object") {
                     }
                 },
             behave: function (behavior, moveIntoScreen) {
+                this.printLog('behave', behavior, moveIntoScreen);
                 this.start_time = Date.now();
                 var duration = (behavior.minduration +
                     (behavior.maxduration - behavior.minduration) * Math.random());
@@ -2370,6 +2392,7 @@ if (typeof (BrowserPonies) !== "object") {
                 }
             },
             teleport: function () {
+                this.printLog('teleport');
                 var winsize = windowSize();
                 var size = this.size();
                 this.setTopLeftPosition({
@@ -2378,6 +2401,7 @@ if (typeof (BrowserPonies) !== "object") {
                 });
             },
             speakRandom: function (start_time, speak_probability) {
+                this.printLog('speakRandom', start_time, speak_probability);
                 if (Math.random() >= speak_probability) return;
                 var filtered = [];
                 var current_group = this.current_behavior.group;
@@ -2392,6 +2416,7 @@ if (typeof (BrowserPonies) !== "object") {
                 }
             },
             randomBehavior: function (forceMovement) {
+                this.printLog('randomBehavior', forceMovement);
                 var behaviors;
                 var current_group = this.current_behavior ? this.current_behavior.group : 0;
 
@@ -2755,7 +2780,28 @@ if (typeof (BrowserPonies) !== "object") {
             }
         });
 
+        const changePonyAiStatus = (ponyIndex, stopAi) => {
+            const executeScript = (ponyInst) =>
+                ponyInst.ai_disabled = stopAi;
+            if (typeof ponyIndex !== 'undefined') {
+                if (instances[ponyIndex]) {
+                    executeScript(instances[ponyIndex]);
+                    return true;
+                }
+                return false;
+            } else
+                for (const index in instances)
+                    executeScript(instances[index]);
+            return true;
+        };
+
         return {
+            stopAi: function (ponyIndex) {
+                return changePonyAiStatus(ponyIndex, true);
+            },
+            startAi: function (ponyIndex) {
+                return changePonyAiStatus(ponyIndex, false);
+            },
             convertPony: function (ini, baseurl) {
                 var rows = PonyINI.parse(ini);
                 var pony = {
