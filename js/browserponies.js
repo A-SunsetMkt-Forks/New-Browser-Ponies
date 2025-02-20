@@ -22,14 +22,14 @@
 
 "use strict";
 
-if (typeof(BrowserPonies) !== "object") {
+if (typeof (BrowserPonies) !== "object") {
     // Debug Mode
-    const tinyDebugMode = typeof URL != "undefined" && 
+    const tinyDebugMode = typeof URL !== "undefined" &&
         new URL(window.location.href).searchParams.get("BrowserPoniesDebug") == "true" ? true : false;
 
     // Shims:
-    (function() {
-        var shim = function(obj, shims) {
+    (function () {
+        var shim = function (obj, shims) {
             for (var name in shims) {
                 if (!(name in obj)) {
                     obj[name] = shims[name];
@@ -38,25 +38,25 @@ if (typeof(BrowserPonies) !== "object") {
         };
 
         shim(String.prototype, {
-            trim: function() {
+            trim: function () {
                 return this.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
             },
-            trimLeft: function() {
+            trimLeft: function () {
                 return this.replace(/^\s\s*/, '');
             },
-            trimRight: function() {
+            trimRight: function () {
                 return this.replace(/\s\s*$/, '');
             }
         });
 
         shim(Array, {
-            isArray: function(object) {
+            isArray: function (object) {
                 return Object.prototype.toString.call(object) === '[object Array]';
             }
         });
 
         shim(Array.prototype, {
-            indexOf: function(searchElement, fromIndex) {
+            indexOf: function (searchElement, fromIndex) {
                 if (!fromIndex || fromIndex < 0) fromIndex = 0;
                 for (; fromIndex < this.length; ++fromIndex) {
                     if (this[fromIndex] === searchElement) {
@@ -68,25 +68,25 @@ if (typeof(BrowserPonies) !== "object") {
         });
 
         shim(Function.prototype, {
-            bind: function(self) {
+            bind: function (self) {
                 var funct = this;
                 var partial = Array.prototype.slice.call(arguments, 1);
-                return function() {
+                return function () {
                     return funct.apply(self, partial.concat(Array.prototype.slice.call(arguments)));
                 };
             }
         });
 
         shim(Date, {
-            now: function() {
+            now: function () {
                 return new Date().getTime();
             }
         });
 
         // dummy console object to prevent crashes on forgotten debug messages:
-        if (typeof(console) === "undefined")
+        if (typeof (console) === "undefined")
             shim(window, { console: {} });
-        shim(window.console, { log: function() {} });
+        shim(window.console, { log: function () { } });
         shim(window.console, {
             info: window.console.log,
             warn: window.console.log,
@@ -96,24 +96,24 @@ if (typeof(BrowserPonies) !== "object") {
         });
     })();
 
-    var BrowserPonies = (function() {
+    var BrowserPonies = (function () {
         var BaseZIndex = 9000000;
         var observe = document.addEventListener ?
-            function(element, event, handler) {
+            function (element, event, handler) {
                 element.addEventListener(event, handler, false);
             } :
-            function(element, event, handler) {
+            function (element, event, handler) {
                 var wrapper = '_eventHandlingWrapper' in handler ?
                     handler._eventHandlingWrapper :
-                    (handler._eventHandlingWrapper = function() {
+                    (handler._eventHandlingWrapper = function () {
                         var event = window.event;
                         if (!('stopPropagation' in event)) {
-                            event.stopPropagation = function() {
+                            event.stopPropagation = function () {
                                 this.cancelBubble = true;
                             };
                         }
                         if (!('preventDefault' in event)) {
-                            event.preventDefault = function() {
+                            event.preventDefault = function () {
                                 this.returnValue = false;
                             };
                         }
@@ -126,16 +126,16 @@ if (typeof(BrowserPonies) !== "object") {
             };
 
         var stopObserving = document.removeEventListener ?
-            function(element, event, handler) {
+            function (element, event, handler) {
                 element.removeEventListener(event, handler, false);
             } :
-            function(element, event, handler) {
+            function (element, event, handler) {
                 if ('_eventHandlingWrapper' in handler) {
                     element.detachEvent('on' + event, handler._eventHandlingWrapper);
                 }
             };
 
-        var documentHidden = function() {
+        var documentHidden = function () {
             var names = ['hidden', 'webkitHidden', 'mozHidden', 'msHidden'];
             for (var i = 0; i < names.length; ++i) {
                 var name = names[i];
@@ -146,7 +146,7 @@ if (typeof(BrowserPonies) !== "object") {
             return false;
         };
 
-        var visibilitychange = function(event) {
+        var visibilitychange = function (event) {
             if (timer !== null) {
                 if (documentHidden()) {
                     clearTimeout(timer);
@@ -157,31 +157,31 @@ if (typeof(BrowserPonies) !== "object") {
             }
         };
 
-        if (typeof(document.hidden) !== 'undefined') {
+        if (typeof (document.hidden) !== 'undefined') {
             observe(document, 'visibilitychange', visibilitychange);
-        } else if (typeof(document.webkitHidden) !== 'undefined') {
+        } else if (typeof (document.webkitHidden) !== 'undefined') {
             observe(document, 'webkitvisibilitychange', visibilitychange);
-        } else if (typeof(document.mozHidden) !== 'undefined') {
+        } else if (typeof (document.mozHidden) !== 'undefined') {
             observe(document, 'mozvisibilitychange', visibilitychange);
-        } else if (typeof(document.msHidden) !== 'undefined') {
+        } else if (typeof (document.msHidden) !== 'undefined') {
             observe(document, 'msvisibilitychange', visibilitychange);
         }
 
         var windowSize = 'innerWidth' in window ?
-            function() {
+            function () {
                 return {
                     width: window.innerWidth,
                     height: window.innerHeight
                 };
             } :
-            function() {
+            function () {
                 return {
                     width: document.documentElement.clientWidth,
                     height: document.documentElement.clientHeight
                 };
             };
 
-        var padd = function(s, fill, padding, right) {
+        var padd = function (s, fill, padding, right) {
             if (s.length >= fill) {
                 return s;
             }
@@ -189,7 +189,7 @@ if (typeof(BrowserPonies) !== "object") {
             return right ? (padding + s) : (s + padding);
         };
 
-        var format = function(fmt) {
+        var format = function (fmt) {
             var s = '';
             var argind = 1;
             while (fmt) {
@@ -229,16 +229,16 @@ if (typeof(BrowserPonies) !== "object") {
             return s;
         };
 
-        var extend = function(dest, src) {
+        var extend = function (dest, src) {
             for (var name in src) {
                 dest[name] = src[name];
             }
             return dest;
         };
 
-        var partial = function(fn) {
+        var partial = function (fn) {
             var args = Array.prototype.slice.call(arguments, 1);
-            return function() {
+            return function () {
                 return fn.apply(this, args.concat(Array.prototype.slice.call(arguments)));
             };
         };
@@ -271,7 +271,7 @@ if (typeof(BrowserPonies) !== "object") {
         };
 
         URL.prototype = {
-            toString: function() {
+            toString: function () {
                 return this.protocol + '//' +
                     (this.username || this.password ?
                         (this.username || 'anonymous') + (this.password ? ':' + this.password : '') + '@' : '') +
@@ -290,7 +290,7 @@ if (typeof(BrowserPonies) !== "object") {
                 "ftps:": "990",
                 "file:": ""
             },
-            abs: function(url, baseurl) {
+            abs: function (url, baseurl) {
                 if (!baseurl) baseurl = window.location;
                 if (url.slice(0, 2) === '//') {
                     return baseurl.protocol + url;
@@ -312,7 +312,7 @@ if (typeof(BrowserPonies) !== "object") {
                     return baseurl.protocol + '//' + baseurl.host + path.join("/");
                 }
             },
-            join: function(baseurl) {
+            join: function (baseurl) {
                 for (var i = 0; i < arguments.length; ++i) {
                     var url = arguments[i];
 
@@ -335,14 +335,14 @@ if (typeof(BrowserPonies) !== "object") {
                 }
                 return URL.fix(baseurl);
             },
-            fix: function(url) {
+            fix: function (url) {
                 return url.replace(/^https?:\/\/web\d?\.student\.tuwien\.ac\.at\/~e0427417\/browser-ponies\//, "https://jackieapkon.github.com/Browser-Ponies/");
             }
         });
 
         var Opera = Object.prototype.toString.call(window.opera) === '[object Opera]';
         var IE, IEVersion;
-        (function() {
+        (function () {
             var m = (/MSIE ([0-9]{1,}[\.0-9]{0,})/).exec(navigator.userAgent);
             IE = !!m;
             if (IE) {
@@ -353,10 +353,10 @@ if (typeof(BrowserPonies) !== "object") {
             }
         })();
         var Gecko = navigator.userAgent.indexOf('Gecko') > -1 && navigator.userAgent.indexOf('KHTML') === -1;
-        var HasAudio = typeof(Audio) !== "undefined";
-        var add = function(element, arg) {
+        var HasAudio = typeof (Audio) !== "undefined";
+        var add = function (element, arg) {
             if (!arg) return;
-            if (typeof(arg) === "string") {
+            if (typeof (arg) === "string") {
                 element.appendChild(document.createTextNode(arg));
             } else if (Array.isArray(arg)) {
                 for (var i = 0, n = arg.length; i < n; ++i) {
@@ -372,12 +372,12 @@ if (typeof(BrowserPonies) !== "object") {
                     } else if (attr === "for" || attr === "htmlFor") {
                         element.htmlFor = String(value);
                     } else if (/^on/.test(attr)) {
-                        if (typeof(value) !== "function") {
+                        if (typeof (value) !== "function") {
                             throw new Error("Event listeners must be a function.");
                         }
                         observe(element, attr.replace(/^on/, ""), value);
                     } else if (attr === 'style') {
-                        if (typeof(value) === "object") {
+                        if (typeof (value) === "object") {
                             for (var name in value) {
                                 var cssValue = value[name];
                                 if (name === 'float') {
@@ -412,18 +412,18 @@ if (typeof(BrowserPonies) !== "object") {
         };
 
         var setOpacity = IE && IEVersion[0] < 10 ?
-            function(element, opacity) {
+            function (element, opacity) {
                 try {
                     element.style.filter = element.style.filter.replace(/\balpha\([^\)]*\)/gi, '') +
                         'alpha(opacity=' + (Number(opacity) * 100) + ')';
-                } catch (e) {}
+                } catch (e) { }
                 element.style.opacity = opacity;
             } :
-            function(element, opacity) {
+            function (element, opacity) {
                 element.style.opacity = opacity;
             };
 
-        var tag = function(name) {
+        var tag = function (name) {
             var element = document.createElement(name);
             for (var i = 1, n = arguments.length; i < n; ++i) {
                 add(element, arguments[i]);
@@ -431,11 +431,11 @@ if (typeof(BrowserPonies) !== "object") {
             return element;
         };
 
-        var has = function(obj, name) {
+        var has = function (obj, name) {
             return Object.prototype.hasOwnProperty.call(obj, name);
         };
 
-        var removeAll = function(array, item) {
+        var removeAll = function (array, item) {
             for (var i = 0; i < array.length;) {
                 if (array[i] === item) {
                     array.splice(i, 1);
@@ -445,29 +445,29 @@ if (typeof(BrowserPonies) !== "object") {
             }
         };
 
-        var dataUrl = function(mimeType, data) {
+        var dataUrl = function (mimeType, data) {
             return 'data:' + mimeType + ';base64,' + Base64.encode(data);
         };
 
-        var escapeXml = function(s) {
+        var escapeXml = function (s) {
             return s.replace(/&/g, '&amp;').replace(
                 /</g, '&lt;').replace(/>/g, '&gt;').replace(
-                /"/g, '&quot;').replace(/'/g, '&apos;');
+                    /"/g, '&quot;').replace(/'/g, '&apos;');
         };
 
         // inspired by:
         // http://farhadi.ir/posts/utf8-in-javascript-with-a-new-trick
         var Base64 = {
-            encode: function(input) {
+            encode: function (input) {
                 return btoa(unescape(encodeURIComponent(input)));
             },
-            decode: function(input) {
+            decode: function (input) {
                 return decodeURIComponent(escape(atob(input)));
             }
         };
 
         var PonyINI = {
-            parse: function(text) {
+            parse: function (text) {
                 var lines = text.split(/\r?\n/);
                 var rows = [];
                 for (var i = 0, n = lines.length; i < n; ++i) {
@@ -485,7 +485,7 @@ if (typeof(BrowserPonies) !== "object") {
                 }
                 return rows;
             },
-            parseLine: function(line, row) {
+            parseLine: function (line, row) {
                 var pos;
                 while ((line = line.trimLeft()).length > 0) {
                     var ch = line.charAt(0);
@@ -573,15 +573,15 @@ if (typeof(BrowserPonies) !== "object") {
             }
         };
 
-        var parseBoolean = function(value) {
+        var parseBoolean = function (value) {
             var s = value.trim().toLowerCase();
             if (s === "true") return true;
             else if (s === "false") return false;
             else throw new Error("illegal boolean value: " + value);
         };
 
-        var parsePoint = function(value) {
-            if (typeof(value) === "string")
+        var parsePoint = function (value) {
+            if (typeof (value) === "string")
                 value = value.split(",");
             if (value.length !== 2 || !/^\s*-?\d+\s*$/.test(value[0]) || !/^\s*-?\d+\s*$/.test(value[1])) {
                 throw new Error("illegal point value: " + value.join(","));
@@ -589,8 +589,8 @@ if (typeof(BrowserPonies) !== "object") {
             return { x: parseInt(value[0], 10), y: parseInt(value[1], 10) };
         };
 
-        var $ = function(element_or_id) {
-            if (typeof(element_or_id) === "string") {
+        var $ = function (element_or_id) {
+            if (typeof (element_or_id) === "string") {
                 return document.getElementById(element_or_id);
             } else if (element_or_id && element_or_id.nodeType === 1) {
                 return element_or_id;
@@ -599,13 +599,13 @@ if (typeof(BrowserPonies) !== "object") {
             }
         };
 
-        var distance = function(p1, p2) {
+        var distance = function (p1, p2) {
             var dx = p2.x - p1.x;
             var dy = p2.y - p1.y;
             return Math.sqrt(dx * dx + dy * dy);
         };
 
-        var randomSelect = function(list) {
+        var randomSelect = function (list) {
             return list[Math.floor(list.length * Math.random())];
         };
 
@@ -620,7 +620,7 @@ if (typeof(BrowserPonies) !== "object") {
             DownRight: 7
         };
 
-        var movementName = function(mov) {
+        var movementName = function (mov) {
             for (var name in Movements) {
                 if (Movements[name] === mov) {
                     return name;
@@ -674,7 +674,7 @@ if (typeof(BrowserPonies) !== "object") {
             spx: 'audio/ogg;codecs="speex"'
         };
 
-        var locationName = function(loc) {
+        var locationName = function (loc) {
             for (var name in Locations) {
                 if (Locations[name] === loc) {
                     return name;
@@ -719,7 +719,7 @@ if (typeof(BrowserPonies) !== "object") {
         };
 
         Interaction.prototype = {
-            reachableTargets: function(pos) {
+            reachableTargets: function (pos) {
                 var targets = [];
                 var n = this.targets.length;
                 if (n === 0)
@@ -746,7 +746,7 @@ if (typeof(BrowserPonies) !== "object") {
                     return null;
                 }
                 if (this.activate === "one") {
-                    targets.sort(function(lhs, rhs) {
+                    targets.sort(function (lhs, rhs) {
                         return lhs[0] - rhs[0];
                     });
                     return [targets[0][1]];
@@ -812,7 +812,7 @@ if (typeof(BrowserPonies) !== "object") {
         };
 
         Behavior.prototype = {
-            deref: function(property, pony) {
+            deref: function (property, pony) {
                 var name = this[property];
                 var lower_name = (name || '').toLowerCase();
                 if (name && lower_name !== 'none') {
@@ -829,13 +829,13 @@ if (typeof(BrowserPonies) !== "object") {
                     delete this[property];
                 }
             },
-            preload: function() {
+            preload: function () {
                 for (var i = 0, n = this.effects.length; i < n; ++i) {
                     this.effects[i].preload();
                 }
 
                 if (this.rightimage) {
-                    preloadImage(this.rightimage, function(image) {
+                    preloadImage(this.rightimage, function (image) {
                         this.rightsize.width = image.width;
                         this.rightsize.height = image.height;
                         if (this.rightcenter.missing) {
@@ -848,7 +848,7 @@ if (typeof(BrowserPonies) !== "object") {
                 }
 
                 if (this.leftimage) {
-                    preloadImage(this.leftimage, function(image) {
+                    preloadImage(this.leftimage, function (image) {
                         this.leftsize.width = image.width;
                         this.leftsize.height = image.height;
                         if (this.leftcenter.missing) {
@@ -860,7 +860,7 @@ if (typeof(BrowserPonies) !== "object") {
                     }.bind(this));
                 }
             },
-            isMoving: function() {
+            isMoving: function () {
                 if (this.follow || this.x || this.x) return true;
                 switch (this.movement) {
                     case AllowedMoves.None:
@@ -873,7 +873,7 @@ if (typeof(BrowserPonies) !== "object") {
             }
         };
 
-        var parseLocation = function(value) {
+        var parseLocation = function (value) {
             var loc = value.replace(/[-_\s]/g, '').toLowerCase();
             for (var name in Locations) {
                 if (name.toLowerCase() === loc) {
@@ -909,9 +909,9 @@ if (typeof(BrowserPonies) !== "object") {
         };
 
         Effect.prototype = {
-            preload: function() {
+            preload: function () {
                 if (this.rightimage) {
-                    preloadImage(this.rightimage, function(image) {
+                    preloadImage(this.rightimage, function (image) {
                         this.rightsize.width = image.width;
                         this.rightsize.height = image.height;
                         this.rightcenter_point = {
@@ -922,7 +922,7 @@ if (typeof(BrowserPonies) !== "object") {
                 }
 
                 if (this.leftimage) {
-                    preloadImage(this.leftimage, function(image) {
+                    preloadImage(this.leftimage, function (image) {
                         this.leftsize.width = image.width;
                         this.leftsize.height = image.height;
                         this.leftcenter_point = {
@@ -934,7 +934,7 @@ if (typeof(BrowserPonies) !== "object") {
             }
         };
 
-        var equalLength = function(s1, s2) {
+        var equalLength = function (s1, s2) {
             var n = Math.min(s1.length, s2.length);
             for (var i = 0; i < n; ++i) {
                 if (s1.charAt(i) !== s2.charAt(i)) {
@@ -950,7 +950,7 @@ if (typeof(BrowserPonies) !== "object") {
         var onload_callbacks = [];
         var onprogress_callbacks = [];
 
-        var loadImage = function(loader, url, observer) {
+        var loadImage = function (loader, url, observer) {
             var image = loader.object = new Image();
             observe(image, 'load', partial(observer, true));
             observe(image, 'error', partial(observer, false));
@@ -958,10 +958,10 @@ if (typeof(BrowserPonies) !== "object") {
             image.src = url;
         };
 
-        var createAudio = function(urls) {
+        var createAudio = function (urls) {
             var audio = new Audio();
 
-            if (typeof(urls) === "string") {
+            if (typeof (urls) === "string") {
                 audio.src = urls;
             } else {
                 for (var type in urls) {
@@ -976,8 +976,8 @@ if (typeof(BrowserPonies) !== "object") {
             return audio;
         };
 
-        var loadAudio = function(urls) {
-            return function(loader, id, observer) {
+        var loadAudio = function (urls) {
+            return function (loader, id, observer) {
                 var audio = loader.object = createAudio(urls);
                 observe(audio, 'loadeddata', partial(observer, true));
                 observe(audio, 'error', partial(observer, false));
@@ -986,13 +986,13 @@ if (typeof(BrowserPonies) !== "object") {
             };
         };
 
-        var preloadImage = function(url, callback) {
+        var preloadImage = function (url, callback) {
             preload(loadImage, url, callback);
         };
 
-        var preloadAudio = function(urls, callback) {
+        var preloadAudio = function (urls, callback) {
             var fakeurl;
-            if (typeof(urls) === "string") {
+            if (typeof (urls) === "string") {
                 fakeurl = urls;
             } else {
                 var list = [];
@@ -1023,7 +1023,7 @@ if (typeof(BrowserPonies) !== "object") {
             preload(loadAudio(urls), fakeurl, callback);
         };
 
-        var preload = function(load, url, callback) {
+        var preload = function (load, url, callback) {
             if (has(resources, url)) {
                 if (callback) {
                     var loader = resources[url];
@@ -1040,7 +1040,7 @@ if (typeof(BrowserPonies) !== "object") {
                     callbacks: callback ? [callback] : []
                 };
 
-                load(loader, url, function(success) {
+                load(loader, url, function (success) {
                     if (loader.loaded) {
                         if (tinyDebugMode == true) {
                             console.error('resource loaded twice: ' + url);
@@ -1082,12 +1082,12 @@ if (typeof(BrowserPonies) !== "object") {
             }
         };
 
-        preload(function(loader, url, observer) {
+        preload(function (loader, url, observer) {
             if (document.body) {
                 observer(true);
             } else {
                 var loaded = false;
-                var fireLoad = function() {
+                var fireLoad = function () {
                     if (!loaded) {
                         loaded = true;
                         observer(true);
@@ -1098,7 +1098,7 @@ if (typeof(BrowserPonies) !== "object") {
                     // all browsers but IE implement HTML5 DOMContentLoaded
                     observe(document, 'DOMContentLoaded', fireLoad);
                 } else {
-                    var checkReadyState = function() {
+                    var checkReadyState = function () {
                         if (document.readyState === 'complete') {
                             stopObserving(document, 'readystatechange', checkReadyState);
                             fireLoad();
@@ -1113,7 +1113,7 @@ if (typeof(BrowserPonies) !== "object") {
             }
         }, document.location.href);
 
-        var onload = function(callback) {
+        var onload = function (callback) {
             if (resource_loaded_count === resource_count) {
                 callback();
             } else {
@@ -1121,17 +1121,17 @@ if (typeof(BrowserPonies) !== "object") {
             }
         };
 
-        var onprogress = function(callback) {
+        var onprogress = function (callback) {
             onprogress_callbacks.push(callback);
         };
 
         var resource_count_for_progress = 0;
         var progressbar = null;
-        var insertProgressbar = function() {
+        var insertProgressbar = function () {
             resource_count_for_progress = resource_loaded_count;
             document.body.appendChild(progressbar.container);
             centerProgressbar();
-            setTimeout(function() {
+            setTimeout(function () {
                 if (progressbar && !progressbar.finished) {
                     progressbar.container.style.display = '';
                 }
@@ -1140,7 +1140,7 @@ if (typeof(BrowserPonies) !== "object") {
             stopObserving(window, 'load', insertProgressbar);
         };
 
-        var centerProgressbar = function() {
+        var centerProgressbar = function () {
             var winsize = windowSize();
             var hide = false;
             if (progressbar.container.style.display === "none") {
@@ -1160,7 +1160,7 @@ if (typeof(BrowserPonies) !== "object") {
             progressbar.label.style.top = Math.round((height - labelHeight) * 0.5) + 'px';
         };
 
-        onprogress(function(resource_loaded_count, resource_count, url) {
+        onprogress(function (resource_loaded_count, resource_count, url) {
             if (showLoadProgress || progressbar) {
                 if (!progressbar) {
                     progressbar = {
@@ -1223,7 +1223,7 @@ if (typeof(BrowserPonies) !== "object") {
                             MozBoxShadow: "2px 2px 12px rgba(0,0,0,0.4)"
                         },
                         id: 'pc_m_container',
-                        onclick: function() {
+                        onclick: function () {
                             if (progressbar) {
                                 progressbar.container.style.display = 'none';
                             }
@@ -1252,7 +1252,7 @@ if (typeof(BrowserPonies) !== "object") {
                 }
 
                 if (progressbar.finished) {
-                    setTimeout(function() {
+                    setTimeout(function () {
                         stopObserving(window, 'resize', centerProgressbar);
                         stopObserving(window, 'load', insertProgressbar);
                         if (progressbar && progressbar.container && progressbar.container.parentNode) {
@@ -1431,7 +1431,7 @@ if (typeof(BrowserPonies) !== "object") {
         };
 
         Pony.prototype = {
-            preload: function() {
+            preload: function () {
                 for (var i = 0, n = this.all_behaviors.length; i < n; ++i) {
                     this.all_behaviors[i].preload();
                 }
@@ -1445,12 +1445,12 @@ if (typeof(BrowserPonies) !== "object") {
                     }
                 }
             },
-            unspawnAll: function() {
+            unspawnAll: function () {
                 while (this.instances.length > 0) {
                     this.instances[0].unspawn();
                 }
             },
-            addInteraction: function(interaction) {
+            addInteraction: function (interaction) {
                 interaction = new Interaction(interaction);
 
                 if (interaction.targets.length === 0) {
@@ -1483,7 +1483,7 @@ if (typeof(BrowserPonies) !== "object") {
             }
         };
 
-        var descendantOf = function(child, parent) {
+        var descendantOf = function (child, parent) {
             var node = child.parentNode;
             while (node) {
                 if (node === parent) {
@@ -1493,13 +1493,13 @@ if (typeof(BrowserPonies) !== "object") {
             return false;
         };
 
-        var isOffscreen = function(rect) {
+        var isOffscreen = function (rect) {
             return isOutsideOf(rect, windowSize());
         };
 
         // rect has origin at center
         // area is only a size
-        var isOutsideOf = function(rect, area) {
+        var isOutsideOf = function (rect, area) {
             var wh = rect.width * 0.5;
             var hh = rect.height * 0.5;
             return rect.x < wh || rect.y < hh ||
@@ -1507,7 +1507,7 @@ if (typeof(BrowserPonies) !== "object") {
                 rect.y + hh > area.height;
         };
 
-        var clipToScreen = function(rect) {
+        var clipToScreen = function (rect) {
             var winsize = windowSize();
             var x = rect.x;
             var y = rect.y;
@@ -1529,9 +1529,9 @@ if (typeof(BrowserPonies) !== "object") {
             return { x: Math.round(x), y: Math.round(y) };
         };
 
-        var Instance = function Instance() {};
+        var Instance = function Instance() { };
         Instance.prototype = {
-            setTopLeftPosition: function(pos) {
+            setTopLeftPosition: function (pos) {
                 this.current_position.x = pos.x + this.current_center.x;
                 this.current_position.y = pos.y + this.current_center.y;
                 this.img.style.left = Math.round(pos.x) + 'px';
@@ -1541,7 +1541,7 @@ if (typeof(BrowserPonies) !== "object") {
                     this.img.style.zIndex = zIndex;
                 }
             },
-            setPosition: function(pos) {
+            setPosition: function (pos) {
                 var x = this.current_position.x = pos.x;
                 var y = this.current_position.y = pos.y;
                 var top = Math.round(y - this.current_center.y);
@@ -1552,28 +1552,28 @@ if (typeof(BrowserPonies) !== "object") {
                     this.img.style.zIndex = zIndex;
                 }
             },
-            moveBy: function(offset) {
+            moveBy: function (offset) {
                 this.setPosition({
                     x: this.current_position.x + offset.x,
                     y: this.current_position.y + offset.y
                 });
             },
-            clipToScreen: function() {
+            clipToScreen: function () {
                 this.setPosition(clipToScreen(this.rect()));
             },
-            topLeftPosition: function() {
+            topLeftPosition: function () {
                 return {
                     x: this.current_position.x - this.current_center.x,
                     y: this.current_position.y - this.current_center.y
                 };
             },
-            position: function() {
+            position: function () {
                 return this.current_position;
             },
-            size: function() {
+            size: function () {
                 return this.current_size;
             },
-            rect: function() {
+            rect: function () {
                 // lets abuse for speed (avoid object creation)
                 var pos = this.current_position;
                 pos.width = this.current_size.width;
@@ -1589,7 +1589,7 @@ if (typeof(BrowserPonies) !== "object") {
                 //				height: size.height
                 //			};
             },
-            topLeftRect: function() {
+            topLeftRect: function () {
                 var pos = this.topLeftPosition();
                 var size = this.size();
                 return {
@@ -1599,7 +1599,7 @@ if (typeof(BrowserPonies) !== "object") {
                     height: size.height
                 };
             },
-            isOffscreen: function() {
+            isOffscreen: function () {
                 return isOffscreen(this.rect());
             }
         };
@@ -1612,8 +1612,8 @@ if (typeof(BrowserPonies) !== "object") {
         };
 
         PonyInstance.prototype = extend(new Instance(), {
-            createImage: function() {
-                var touch = function(evt) {
+            createImage: function () {
+                var touch = function (evt) {
                     evt.preventDefault();
                     if (evt.touches.length > 1 || (evt.type === "touchend" && evt.touches.length > 0))
                         return;
@@ -1651,13 +1651,13 @@ if (typeof(BrowserPonies) !== "object") {
                         backgroundColor: "transparent",
                         zIndex: String(BaseZIndex)
                     },
-                    ondragstart: function(event) {
+                    ondragstart: function (event) {
                         event.preventDefault();
                     },
                     ontouchstart: touch,
                     ontouchmove: touch,
                     ontouchend: touch,
-                    ondblclick: function() {
+                    ondblclick: function () {
                         // debug output
                         var pos = this.position();
                         var duration = (this.end_time - this.start_time) / 1000;
@@ -1666,7 +1666,7 @@ if (typeof(BrowserPonies) !== "object") {
                                 format('%s does %s%s for %.2f seconds, is at %d x %d and %s. See:',
                                     this.pony.name, this.current_behavior.name,
                                     this.current_behavior === this.paint_behavior ? '' :
-                                    ' using ' + this.paint_behavior.name, duration, pos.x, pos.y,
+                                        ' using ' + this.paint_behavior.name, duration, pos.x, pos.y,
                                     (this.following ?
                                         'follows ' + this.following.name() :
                                         format('wants to go to %d x %d',
@@ -1674,7 +1674,7 @@ if (typeof(BrowserPonies) !== "object") {
                                 this);
                         }
                     }.bind(this),
-                    onmousedown: function(event) {
+                    onmousedown: function (event) {
                         // IE 9 supports event.buttons and handles event.button like the w3c says.
                         // IE <9 does not support event.buttons but sets event.button to the value
                         // event.buttons should have (which is not what the w3c says).
@@ -1688,7 +1688,7 @@ if (typeof(BrowserPonies) !== "object") {
                             event.preventDefault();
                         }
                     }.bind(this),
-                    onmouseover: function() {
+                    onmouseover: function () {
                         if (!this.mouseover) {
                             this.mouseover = true;
                             // timer === null means paused/not runnung
@@ -1699,7 +1699,7 @@ if (typeof(BrowserPonies) !== "object") {
                             }
                         }
                     }.bind(this),
-                    onmouseout: function(event) {
+                    onmouseout: function (event) {
                         var target = event.target;
                         // XXX: the img has no descendants but if it had it might still be correct in case
                         //      the relatedTarget is an anchester of the img or any node that is not a child
@@ -1711,12 +1711,12 @@ if (typeof(BrowserPonies) !== "object") {
                     }.bind(this)
                 });
             },
-            isMouseOverOrDragging: function() {
+            isMouseOverOrDragging: function () {
                 return this.current_behavior &&
                     (this.current_behavior.movement === AllowedMoves.MouseOver ||
                         this.current_behavior.movement === AllowedMoves.Dragged);
             },
-            canDrag: function() {
+            canDrag: function () {
                 if (!this.current_behavior) {
                     return this.pony.dragged_behaviors.length > 0;
                 } else {
@@ -1732,7 +1732,7 @@ if (typeof(BrowserPonies) !== "object") {
                     return false;
                 }
             },
-            canMouseOver: function() {
+            canMouseOver: function () {
                 if (!this.current_behavior) {
                     return this.pony.mouseover_behaviors.length > 0;
                 } else {
@@ -1747,10 +1747,10 @@ if (typeof(BrowserPonies) !== "object") {
                     return false;
                 }
             },
-            name: function() {
+            name: function () {
                 return this.pony.name;
             },
-            unspawn: function() {
+            unspawn: function () {
                 var currentTime = Date.now();
                 if (this.effects) {
                     for (var i = 0, n = this.effects.length; i < n; ++i) {
@@ -1767,7 +1767,7 @@ if (typeof(BrowserPonies) !== "object") {
                 removeAll(this.pony.instances, this);
                 removeAll(instances, this);
             },
-            clear: function() {
+            clear: function () {
                 if (this.effects) {
                     for (var i = 0, n = this.effects.length; i < n; ++i) {
                         this.effects[i].clear();
@@ -1795,7 +1795,7 @@ if (typeof(BrowserPonies) !== "object") {
                 this.effects = [];
                 this.repeating = [];
             },
-            interact: function(currentTime, interaction, targets) {
+            interact: function (currentTime, interaction, targets) {
                 var pony, behavior = randomSelect(interaction.behaviors);
                 this.behave(this.pony.behaviors_by_name[behavior]);
                 for (var i = 0, n = targets.length; i < n; ++i) {
@@ -1806,13 +1806,13 @@ if (typeof(BrowserPonies) !== "object") {
                 this.current_interaction = interaction;
                 this.interaction_targets = targets;
             },
-            speak: function(currentTime, speech) {
+            speak: function (currentTime, speech) {
                 if (dontSpeak) return;
                 if (speech.text) {
                     var duration = Math.max(speech.text.length * 150, 1000);
                     var remove = { at: currentTime + duration };
                     var text = tag('div', {
-                        ondblclick: function() {
+                        ondblclick: function () {
                             remove.at = Date.now();
                         },
                         style: {
@@ -1851,7 +1851,7 @@ if (typeof(BrowserPonies) !== "object") {
                     audio.play();
                 }
             },
-            update: function(currentTime, passedTime, winsize) {
+            update: function (currentTime, passedTime, winsize) {
                 var curr = this.rect();
                 var dest = null;
                 var dist;
@@ -1917,12 +1917,12 @@ if (typeof(BrowserPonies) !== "object") {
                     }
                     this.setPosition(pos);
                     /*
-                    				console.log(
-                    					"current: "+curr.x+" x "+curr.y+
-                    					", step: "+pos.x+" x "+pos.y+
-                    					", dest: "+dest.x+" x "+dest.y+
-                    					", dist: "+dist+
-                    					", dist for passed time: "+tdist);
+                                    console.log(
+                                        "current: "+curr.x+" x "+curr.y+
+                                        ", step: "+pos.x+" x "+pos.y+
+                                        ", dest: "+dest.x+" x "+dest.y+
+                                        ", dist: "+dist+
+                                        ", dist for passed time: "+tdist);
                     */
                 } else {
                     pos = curr;
@@ -2032,7 +2032,7 @@ if (typeof(BrowserPonies) !== "object") {
                     }
                 }
             },
-            getNearestInstance: function(name) {
+            getNearestInstance: function (name) {
                 var nearObjects = [];
                 var pos = this.position();
                 var pony = ponies[name];
@@ -2061,10 +2061,10 @@ if (typeof(BrowserPonies) !== "object") {
                 if (nearObjects.length === 0) {
                     return null;
                 }
-                nearObjects.sort(function(lhs, rhs) { return lhs[0] - rhs[0]; });
+                nearObjects.sort(function (lhs, rhs) { return lhs[0] - rhs[0]; });
                 return nearObjects[0][1];
             },
-            nextBehavior: function(breaklink) {
+            nextBehavior: function (breaklink) {
                 var offscreen = this.isOffscreen();
                 if (!breaklink && this.current_behavior && this.current_behavior.linked) {
                     this.behave(this.current_behavior.linked, offscreen);
@@ -2088,7 +2088,7 @@ if (typeof(BrowserPonies) !== "object") {
                 }
             },
             setFacingRight: Gecko ?
-                function(value) {
+                function (value) {
                     this.facing_right = value;
                     var newimg;
                     if (value) {
@@ -2110,7 +2110,7 @@ if (typeof(BrowserPonies) !== "object") {
                         this.img.parentNode.replaceChild(img, this.img);
                         this.img = img;
                     }
-                } : function(value) {
+                } : function (value) {
                     this.facing_right = value;
                     var newimg;
                     if (value) {
@@ -2126,7 +2126,7 @@ if (typeof(BrowserPonies) !== "object") {
                         this.img.src = this.current_imgurl = newimg;
                     }
                 },
-            behave: function(behavior, moveIntoScreen) {
+            behave: function (behavior, moveIntoScreen) {
                 this.start_time = Date.now();
                 var duration = (behavior.minduration +
                     (behavior.maxduration - behavior.minduration) * Math.random());
@@ -2202,35 +2202,35 @@ if (typeof(BrowserPonies) !== "object") {
 
                         case AllowedMoves.HorizontalVertical:
                             movements = [Movements.Left, Movements.Right,
-                                Movements.Up, Movements.Down
+                            Movements.Up, Movements.Down
                             ];
                             break;
 
                         case AllowedMoves.DiagonalOnly:
                             movements = [Movements.UpLeft, Movements.UpRight,
-                                Movements.DownLeft, Movements.DownRight
+                            Movements.DownLeft, Movements.DownRight
                             ];
                             break;
 
                         case AllowedMoves.DiagonalHorizontal:
                             movements = [Movements.Left, Movements.Right,
-                                Movements.UpLeft, Movements.UpRight,
-                                Movements.DownLeft, Movements.DownRight
+                            Movements.UpLeft, Movements.UpRight,
+                            Movements.DownLeft, Movements.DownRight
                             ];
                             break;
 
                         case AllowedMoves.DiagonalVertical:
                             movements = [Movements.Up, Movements.Down,
-                                Movements.UpLeft, Movements.UpRight,
-                                Movements.DownLeft, Movements.DownRight
+                            Movements.UpLeft, Movements.UpRight,
+                            Movements.DownLeft, Movements.DownRight
                             ];
                             break;
 
                         case AllowedMoves.All:
                             movements = [Movements.Left, Movements.Right,
-                                Movements.Up, Movements.Down,
-                                Movements.UpLeft, Movements.UpRight,
-                                Movements.DownLeft, Movements.DownRight
+                            Movements.Up, Movements.Down,
+                            Movements.UpLeft, Movements.UpRight,
+                            Movements.DownLeft, Movements.DownRight
                             ];
                             break;
                     }
@@ -2342,8 +2342,8 @@ if (typeof(BrowserPonies) !== "object") {
                 // this changes the image to the new behavior:
                 this.setFacingRight(
                     pos.x !== this.dest_position.x ?
-                    pos.x <= this.dest_position.x :
-                    this.facing_right);
+                        pos.x <= this.dest_position.x :
+                        this.facing_right);
 
                 // this initializes the new images position:
                 // (alternatively maybe this.update(...) could be called?)
@@ -2367,29 +2367,29 @@ if (typeof(BrowserPonies) !== "object") {
                 }
                 this.effects = neweffects;
                 /*
-                			var msg;
-                			if (this.following) {
-                				msg = "following "+behavior.follow;
-                			}
-                			else {
-                				if (this.dest_position.x !== pos.x || this.dest_position.y !== pos.y) {
-                					msg = "move from "+pos.x+" x "+pos.y+" to "+
-                						Math.round(this.dest_position.x)+" x "+
-                						Math.round(this.dest_position.y);
-                				}
-                				else {
-                					msg = "no movement";
-                				}
-                				
-                				if (behavior.follow) {
-                					msg += " (wanted to follow "+behavior.follow+")";
-                				}
-                			}
-                			console.log(this.pony.name+" does "+behavior.name+": "+msg+" in "+duration+
-                				" seconds");
+                            var msg;
+                            if (this.following) {
+                                msg = "following "+behavior.follow;
+                            }
+                            else {
+                                if (this.dest_position.x !== pos.x || this.dest_position.y !== pos.y) {
+                                    msg = "move from "+pos.x+" x "+pos.y+" to "+
+                                        Math.round(this.dest_position.x)+" x "+
+                                        Math.round(this.dest_position.y);
+                                }
+                                else {
+                                    msg = "no movement";
+                                }
+                            	
+                                if (behavior.follow) {
+                                    msg += " (wanted to follow "+behavior.follow+")";
+                                }
+                            }
+                            console.log(this.pony.name+" does "+behavior.name+": "+msg+" in "+duration+
+                                " seconds");
                 */
             },
-            teleport: function() {
+            teleport: function () {
                 var winsize = windowSize();
                 var size = this.size();
                 this.setTopLeftPosition({
@@ -2397,7 +2397,7 @@ if (typeof(BrowserPonies) !== "object") {
                     y: Math.random() * (winsize.height - size.height)
                 });
             },
-            speakRandom: function(start_time, speak_probability) {
+            speakRandom: function (start_time, speak_probability) {
                 if (Math.random() >= speak_probability) return;
                 var filtered = [];
                 var current_group = this.current_behavior.group;
@@ -2411,7 +2411,7 @@ if (typeof(BrowserPonies) !== "object") {
                     this.speak(start_time, randomSelect(filtered));
                 }
             },
-            randomBehavior: function(forceMovement) {
+            randomBehavior: function (forceMovement) {
                 var behaviors;
                 var current_group = this.current_behavior ? this.current_behavior.group : 0;
 
@@ -2445,7 +2445,7 @@ if (typeof(BrowserPonies) !== "object") {
                 }
                 return forceMovement ? this.randomBehavior(false) : null;
             },
-            loops: function(instance) {
+            loops: function (instance) {
                 while (instance) {
                     if (this === instance) return true;
                     instance = instance.following;
@@ -2503,7 +2503,7 @@ if (typeof(BrowserPonies) !== "object") {
         };
 
         EffectInstance.prototype = extend(new Instance(), {
-            createImage: function(src) {
+            createImage: function (src) {
                 var img = tag('img', {
                     src: src,
                     draggable: 'false',
@@ -2529,15 +2529,15 @@ if (typeof(BrowserPonies) !== "object") {
                 }
                 return img;
             },
-            name: function() {
+            name: function () {
                 return this.effect.name;
             },
-            clear: function() {
+            clear: function () {
                 if (this.img.parentNode) {
                     this.img.parentNode.removeChild(this.img);
                 }
             },
-            updatePosition: function(currentTime, passedTime) {
+            updatePosition: function (currentTime, passedTime) {
                 var loc, center;
                 if (this.pony.facing_right) {
                     loc = this.rightloc;
@@ -2624,7 +2624,7 @@ if (typeof(BrowserPonies) !== "object") {
             },
 
             setImage: Gecko ?
-                function(url) {
+                function (url) {
                     if (this.current_imgurl !== url) {
                         // gif animation bug workaround
                         var img = this.createImage(url);
@@ -2635,14 +2635,14 @@ if (typeof(BrowserPonies) !== "object") {
                         this.img.parentNode.replaceChild(img, this.img);
                         this.img = img;
                     }
-                } : function(url) {
+                } : function (url) {
                     if (this.current_imgurl !== url) {
                         this.img.src = this.current_imgurl = url;
                         this.img.style.width = this.current_size.width + "px";
                         this.img.style.height = this.current_size.height + "px";
                     }
                 },
-            update: function(currentTime, passedTime, winsize) {
+            update: function (currentTime, passedTime, winsize) {
                 if (this.effect.follow) {
                     this.updatePosition(currentTime, passedTime);
 
@@ -2663,7 +2663,7 @@ if (typeof(BrowserPonies) !== "object") {
         });
 
         var lastTime = Date.now();
-        var tick = function() {
+        var tick = function () {
             if (timer === null) return;
             var currentTime = Date.now();
             var timeSpan = currentTime - lastTime;
@@ -2733,7 +2733,7 @@ if (typeof(BrowserPonies) !== "object") {
         var fpsDisplay = null;
         var volume = 1.0;
 
-        var getOverlay = function() {
+        var getOverlay = function () {
             if (!overlay) {
                 overlay = tag('div', { id: 'browser-ponies' });
             }
@@ -2743,10 +2743,10 @@ if (typeof(BrowserPonies) !== "object") {
             return overlay;
         };
 
-        observe(document, 'touchstart', function(event) {
+        observe(document, 'touchstart', function (event) {
             mousePosition = null;
         });
-        observe(document, 'mousemove', function(event) {
+        observe(document, 'mousemove', function (event) {
             if (!mousePosition) {
                 mousePosition = {
                     x: event.clientX,
@@ -2765,7 +2765,7 @@ if (typeof(BrowserPonies) !== "object") {
             mousePosition.y = event.clientY;
         });
 
-        observe(document, 'mouseup', function() {
+        observe(document, 'mouseup', function () {
             if (dragged) {
                 var inst = dragged;
                 dragged = null;
@@ -2776,7 +2776,7 @@ if (typeof(BrowserPonies) !== "object") {
         });
 
         return {
-            convertPony: function(ini, baseurl) {
+            convertPony: function (ini, baseurl) {
                 var rows = PonyINI.parse(ini);
                 var pony = {
                     baseurl: baseurl || "",
@@ -2992,7 +2992,7 @@ if (typeof(BrowserPonies) !== "object") {
 
                 return pony;
             },
-            convertInteractions: function(ini) {
+            convertInteractions: function (ini) {
                 var rows = PonyINI.parse(ini);
                 var interactions = [];
 
@@ -3028,15 +3028,15 @@ if (typeof(BrowserPonies) !== "object") {
 
                 return interactions;
             },
-            addInteractions: function(interactions) {
-                if (typeof(interactions) === "string") {
+            addInteractions: function (interactions) {
+                if (typeof (interactions) === "string") {
                     interactions = this.convertInteractions(interactions);
                 }
                 for (var i = 0, n = interactions.length; i < n; ++i) {
                     this.addInteraction(interactions[i]);
                 }
             },
-            addInteraction: function(interaction) {
+            addInteraction: function (interaction) {
                 var lowername = interaction.pony.toLowerCase();
                 if (!has(ponies, lowername)) {
                     if (tinyDebugMode == true) {
@@ -3046,12 +3046,12 @@ if (typeof(BrowserPonies) !== "object") {
                 }
                 return ponies[lowername].addInteraction(interaction);
             },
-            addPonies: function(ponies) {
+            addPonies: function (ponies) {
                 for (var i = 0, n = ponies.length; i < n; ++i) {
                     this.addPony(ponies[i]);
                 }
             },
-            addPony: function(pony) {
+            addPony: function (pony) {
                 if (pony.ini) {
                     pony = this.convertPony(pony.ini, pony.baseurl);
                 }
@@ -3071,19 +3071,19 @@ if (typeof(BrowserPonies) !== "object") {
                 ponies[lowername] = new Pony(pony);
                 return true;
             },
-            removePonies: function(ponies) {
+            removePonies: function (ponies) {
                 for (var i = 0, n = ponies.length; i < n; ++i) {
                     this.removePony(ponies[i]);
                 }
             },
-            removePony: function(name) {
+            removePony: function (name) {
                 var lowername = name.toLowerCase();
                 if (has(ponies, lowername)) {
                     ponies[lowername].unspawnAll();
                     delete ponies[lowername];
                 }
             },
-            spawnRandom: function(count) {
+            spawnRandom: function (count) {
                 if (count === undefined) count = 1;
                 else count = parseInt(count);
 
@@ -3126,7 +3126,7 @@ if (typeof(BrowserPonies) !== "object") {
                 }
                 return spawned;
             },
-            spawn: function(name, count) {
+            spawn: function (name, count) {
                 var lowername = name.toLowerCase();
                 if (!has(ponies, lowername)) {
                     if (tinyDebugMode == true) {
@@ -3155,7 +3155,7 @@ if (typeof(BrowserPonies) !== "object") {
                     var inst = new PonyInstance(pony);
                     pony.instances.push(inst);
                     if (timer !== null) {
-                        onload(function() {
+                        onload(function () {
                             if (this.pony.instances.indexOf(this) === -1) return;
                             instances.push(this);
                             this.img.style.visibility = 'hidden';
@@ -3173,7 +3173,7 @@ if (typeof(BrowserPonies) !== "object") {
                 }
                 return true;
             },
-            unspawn: function(name, count) {
+            unspawn: function (name, count) {
                 var lowername = name.toLowerCase();
                 if (!has(ponies, lowername)) {
                     if (tinyDebugMode == true) {
@@ -3203,21 +3203,21 @@ if (typeof(BrowserPonies) !== "object") {
                 }
                 return true;
             },
-            unspawnAll: function() {
+            unspawnAll: function () {
                 for (var name in ponies) {
                     ponies[name].unspawnAll();
                 }
             },
-            clear: function() {
+            clear: function () {
                 this.unspawnAll();
                 ponies = {};
             },
-            preloadAll: function() {
+            preloadAll: function () {
                 for (var name in ponies) {
                     ponies[name].preload();
                 }
             },
-            preloadSpawned: function() {
+            preloadSpawned: function () {
                 for (var name in ponies) {
                     var pony = ponies[name];
                     if (pony.instances.length > 0) {
@@ -3225,13 +3225,13 @@ if (typeof(BrowserPonies) !== "object") {
                     }
                 }
             },
-            start: function() {
+            start: function () {
                 if (preloadAll) {
                     this.preloadAll();
                 } else {
                     this.preloadSpawned();
                 }
-                onload(function() {
+                onload(function () {
                     var overlay = getOverlay();
                     overlay.innerHTML = '';
                     for (var i = 0, n = instances.length; i < n; ++i) {
@@ -3251,10 +3251,10 @@ if (typeof(BrowserPonies) !== "object") {
                     }
                 });
             },
-            timer: function() {
+            timer: function () {
                 return timer;
             },
-            stop: function() {
+            stop: function () {
                 if (overlay) {
                     overlay.parentNode.removeChild(overlay);
                     overlay.innerHTML = '';
@@ -3266,26 +3266,26 @@ if (typeof(BrowserPonies) !== "object") {
                     timer = null;
                 }
             },
-            pause: function() {
+            pause: function () {
                 if (timer !== null) {
                     clearTimeout(timer);
                     timer = null;
                 }
             },
-            resume: function() {
+            resume: function () {
                 if (preloadAll) {
                     this.preloadAll();
                 } else {
                     this.preloadSpawned();
                 }
-                onload(function() {
+                onload(function () {
                     if (timer === null) {
                         lastTime = Date.now();
                         timer = setTimeout(tick, 0);
                     }
                 });
             },
-            setInterval: function(ms) {
+            setInterval: function (ms) {
                 ms = parseInt(ms);
                 if (isNaN(ms)) {
                     if (tinyDebugMode == true) {
@@ -3295,16 +3295,16 @@ if (typeof(BrowserPonies) !== "object") {
                     interval = ms;
                 }
             },
-            getInterval: function() {
+            getInterval: function () {
                 return interval;
             },
-            setFps: function(fps) {
+            setFps: function (fps) {
                 this.setInterval(1000 / Number(fps));
             },
-            getFps: function() {
+            getFps: function () {
                 return 1000 / interval;
             },
-            setInteractionInterval: function(ms) {
+            setInteractionInterval: function (ms) {
                 ms = Number(ms);
                 if (isNaN(ms)) {
                     if (tinyDebugMode == true) {
@@ -3314,10 +3314,10 @@ if (typeof(BrowserPonies) !== "object") {
                     interactionInterval = ms;
                 }
             },
-            getInteractionInterval: function() {
+            getInteractionInterval: function () {
                 return interactionInterval;
             },
-            setSpeakProbability: function(probability) {
+            setSpeakProbability: function (probability) {
                 probability = Number(probability);
                 if (isNaN(probability)) {
                     if (tinyDebugMode == true) {
@@ -3327,16 +3327,16 @@ if (typeof(BrowserPonies) !== "object") {
                     speakProbability = probability;
                 }
             },
-            getSpeakProbability: function() {
+            getSpeakProbability: function () {
                 return speakProbability;
             },
-            setDontSpeak: function(value) {
+            setDontSpeak: function (value) {
                 dontSpeak = !!value;
             },
-            isDontSpeak: function() {
+            isDontSpeak: function () {
                 return dontSpeak;
             },
-            setVolume: function(value) {
+            setVolume: function (value) {
                 value = Number(value);
                 if (isNaN(value)) {
                     if (tinyDebugMode == true) {
@@ -3351,23 +3351,23 @@ if (typeof(BrowserPonies) !== "object") {
                 }
 
             },
-            getVolume: function() {
+            getVolume: function () {
                 return volume;
             },
-            setBaseUrl: function(url) {
+            setBaseUrl: function (url) {
                 globalBaseUrl = URL.fix(url);
             },
-            getBaseUrl: function() {
+            getBaseUrl: function () {
                 return globalBaseUrl;
             },
-            setSpeed: function(speed) {
+            setSpeed: function (speed) {
                 globalSpeed = Number(speed);
             },
-            getSpeed: function() {
+            getSpeed: function () {
                 return globalSpeed;
             },
-            setAudioEnabled: function(enabled) {
-                if (typeof(enabled) === "string") {
+            setAudioEnabled: function (enabled) {
+                if (typeof (enabled) === "string") {
                     try {
                         enabled = parseBoolean(enabled);
                     } catch (e) {
@@ -3390,11 +3390,11 @@ if (typeof(BrowserPonies) !== "object") {
                     audioEnabled = enabled;
                 }
             },
-            isAudioEnabled: function() {
+            isAudioEnabled: function () {
                 return audioEnabled;
             },
-            setShowFps: function(value) {
-                if (typeof(value) === "string") {
+            setShowFps: function (value) {
+                if (typeof (value) === "string") {
                     try {
                         showFps = parseBoolean(value);
                     } catch (e) {
@@ -3413,11 +3413,11 @@ if (typeof(BrowserPonies) !== "object") {
                     fpsDisplay = null;
                 }
             },
-            isShowFps: function() {
+            isShowFps: function () {
                 return showFps;
             },
-            setPreloadAll: function(all) {
-                if (typeof(all) === "string") {
+            setPreloadAll: function (all) {
+                if (typeof (all) === "string") {
                     try {
                         preloadAll = parseBoolean(all);
                     } catch (e) {
@@ -3430,11 +3430,11 @@ if (typeof(BrowserPonies) !== "object") {
                     preloadAll = !!all;
                 }
             },
-            isPreloadAll: function() {
+            isPreloadAll: function () {
                 return preloadAll;
             },
-            setShowLoadProgress: function(show) {
-                if (typeof(show) === "string") {
+            setShowLoadProgress: function (show) {
+                if (typeof (show) === "string") {
                     try {
                         showLoadProgress = parseBoolean(show);
                     } catch (e) {
@@ -3447,22 +3447,22 @@ if (typeof(BrowserPonies) !== "object") {
                     showLoadProgress = !!show;
                 }
             },
-            isShowLoadProgress: function() {
+            isShowLoadProgress: function () {
                 return showLoadProgress;
             },
-            getFadeDuration: function() {
+            getFadeDuration: function () {
                 return fadeDuration;
             },
-            setFadeDuration: function(ms) {
+            setFadeDuration: function (ms) {
                 fadeDuration = Number(ms);
             },
-            running: function() {
+            running: function () {
                 return timer !== null;
             },
-            ponies: function() {
+            ponies: function () {
                 return ponies;
             },
-            loadConfig: function(config) {
+            loadConfig: function (config) {
                 if ('baseurl' in config) {
                     this.setBaseUrl(config.baseurl);
                 }
@@ -3530,7 +3530,7 @@ if (typeof(BrowserPonies) !== "object") {
                 }
             },
             // currently excluding ponies and interactions
-            dumpConfig: function() {
+            dumpConfig: function () {
                 var config = {};
                 config.baseurl = this.getBaseUrl();
                 config.speed = this.getSpeed();
@@ -3557,8 +3557,8 @@ if (typeof(BrowserPonies) !== "object") {
                 return config;
             },
 
-            togglePoniesToBackground: function() {
-                if (typeof(toggleBrowserPoniesToBackground) === "undefined") {
+            togglePoniesToBackground: function () {
+                if (typeof (toggleBrowserPoniesToBackground) === "undefined") {
                     alert("This website does not support bringing Browser Ponies to the background.");
                 } else {
                     try {
@@ -3600,10 +3600,10 @@ if (typeof(BrowserPonies) !== "object") {
         };
     })();
 
-    if (typeof(BrowserPoniesConfig) !== "undefined") {
+    if (typeof (BrowserPoniesConfig) !== "undefined") {
         BrowserPonies.loadConfig(BrowserPoniesConfig);
         if (BrowserPoniesConfig.oninit) {
-            (function() {
+            (function () {
                 if (Array.isArray(BrowserPoniesConfig.oninit)) {
                     for (var i = 0, n = BrowserPoniesConfig.oninit.length; i < n; ++i) {
                         BrowserPoniesConfig.oninit[i]();
