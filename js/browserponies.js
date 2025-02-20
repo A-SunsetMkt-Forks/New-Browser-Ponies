@@ -23,16 +23,9 @@
 "use strict";
 
 if (typeof(BrowserPonies) !== "object") {
-
-    if (typeof URL != "undefined") {
-        if (new URL(window.location.href).searchParams.get("BrowserPoniesDebug") == "true") {
-            var tinydebugBrowserPonies = true;
-        } else {
-            var tinydebugBrowserPonies = false;
-        }
-    } else {
-        var tinydebugBrowserPonies = false;
-    }
+    // Debug Mode
+    const tinyDebugMode = typeof URL != "undefined" && 
+        new URL(window.location.href).searchParams.get("BrowserPoniesDebug") == "true" ? true : false;
 
     // Shims:
     (function() {
@@ -396,7 +389,7 @@ if (typeof(BrowserPonies) !== "object") {
                                     try {
                                         element.style[name] = cssValue;
                                     } catch (e) {
-                                        if (tinydebugBrowserPonies == true) {
+                                        if (tinyDebugMode == true) {
                                             console.error(name + '=' + cssValue + ' ' + e.toString());
                                         }
                                     }
@@ -484,7 +477,7 @@ if (typeof(BrowserPonies) !== "object") {
                     var row = [];
                     line = this.parseLine(line, row);
                     if (line.length !== 0) {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.error("trailing text:", line);
                         }
                     }
@@ -513,13 +506,13 @@ if (typeof(BrowserPonies) !== "object") {
                                     if (ch === ',') {
                                         line = line.slice(1);
                                     } else if (ch !== '}') {
-                                        if (tinydebugBrowserPonies == true) {
+                                        if (tinyDebugMode == true) {
                                             console.error("data after quoted string:", line);
                                         }
                                     }
                                 }
                             } else {
-                                if (tinydebugBrowserPonies == true) {
+                                if (tinyDebugMode == true) {
                                     console.error("unterminated quoted string");
                                 }
                             }
@@ -537,7 +530,7 @@ if (typeof(BrowserPonies) !== "object") {
                             if (line.length > 0) {
                                 ch = line.charAt(0);
                                 if (ch !== '}') {
-                                    if (tinydebugBrowserPonies == true) {
+                                    if (tinyDebugMode == true) {
                                         console.error("data after list:", line);
                                     }
                                 } else {
@@ -549,7 +542,7 @@ if (typeof(BrowserPonies) !== "object") {
                                     line = line.slice(1);
                                 }
                             } else {
-                                if (tinydebugBrowserPonies == true) {
+                                if (tinyDebugMode == true) {
                                     console.error("unterminated list");
                                 }
                             }
@@ -569,7 +562,7 @@ if (typeof(BrowserPonies) !== "object") {
                                 if (ch === ',') {
                                     line = line.slice(1);
                                 } else if (ch !== '}') {
-                                    if (tinydebugBrowserPonies == true) {
+                                    if (tinyDebugMode == true) {
                                         console.error("syntax error:", line);
                                     }
                                 }
@@ -706,7 +699,7 @@ if (typeof(BrowserPonies) !== "object") {
             for (var i = 0, n = interaction.targets.length; i < n; ++i) {
                 var name = interaction.targets[i].toLowerCase();
                 if (!has(ponies, name)) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.warn("Interaction " + this.name + " of pony " + interaction.pony +
                             " references non-existing pony " + name);
                     }
@@ -826,7 +819,7 @@ if (typeof(BrowserPonies) !== "object") {
                     if (has(pony.behaviors_by_name, lower_name)) {
                         this[property] = pony.behaviors_by_name[lower_name];
                     } else {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.warn(format("%s: Behavior %s of pony %s references non-existing behavior %s.",
                                 pony.baseurl, this.name, pony.name, name));
                         }
@@ -1049,7 +1042,7 @@ if (typeof(BrowserPonies) !== "object") {
 
                 load(loader, url, function(success) {
                     if (loader.loaded) {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.error('resource loaded twice: ' + url);
                         }
                         return;
@@ -1057,14 +1050,14 @@ if (typeof(BrowserPonies) !== "object") {
                     loader.loaded = true;
                     ++resource_loaded_count;
                     if (success) {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.log(format('%3.0f%% %d of %d loaded: %s',
                                 resource_loaded_count * 100 / resource_count,
                                 resource_loaded_count, resource_count,
                                 url));
                         }
                     } else {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.error(format('%3.0f%% %d of %d load error: %s',
                                 resource_loaded_count * 100 / resource_count,
                                 resource_loaded_count, resource_count,
@@ -1313,7 +1306,7 @@ if (typeof(BrowserPonies) !== "object") {
                     if (speech.name) {
                         var lowername = speech.name.toLowerCase();
                         if (has(this.speeches_by_name, lowername)) {
-                            if (tinydebugBrowserPonies == true) {
+                            if (tinyDebugMode == true) {
                                 console.warn(format("%s: Speech name %s of pony %s is not unique.",
                                     this.baseurl, speech.name, pony.name));
                             }
@@ -1329,7 +1322,7 @@ if (typeof(BrowserPonies) !== "object") {
                     }
                     if ('group' in speech) {
                         if (speech.group !== 0 && !has(this.behaviorgroups, speech.group)) {
-                            if (tinydebugBrowserPonies == true) {
+                            if (tinyDebugMode == true) {
                                 console.warn(format("%s: Speech %s references unknown behavior group %d.",
                                     this.baseurl, speech.name, speech.group));
                             }
@@ -1347,7 +1340,7 @@ if (typeof(BrowserPonies) !== "object") {
                     var behavior = new Behavior(this.baseurl, pony.behaviors[i]);
                     var lowername = behavior.name.toLowerCase();
                     if (has(this.behaviors_by_name, lowername)) {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.warn(format("%s: Behavior name %s of pony %s is not unique.",
                                 this.baseurl, behavior.name, pony.name));
                         }
@@ -1364,7 +1357,7 @@ if (typeof(BrowserPonies) !== "object") {
                             if (has(this.speeches_by_name, speechname)) {
                                 behavior[speakevent] = this.speeches_by_name[speechname];
                             } else {
-                                if (tinydebugBrowserPonies == true) {
+                                if (tinyDebugMode == true) {
                                     console.warn(format("%s: Behavior %s of pony %s references non-existing speech %s.",
                                         this.baseurl, behavior.name, pony.name, behavior[speakevent]));
                                 }
@@ -1396,7 +1389,7 @@ if (typeof(BrowserPonies) !== "object") {
 
                     if ('group' in behavior) {
                         if (behavior.group !== 0 && !has(this.behaviorgroups, behavior.group)) {
-                            if (tinydebugBrowserPonies == true) {
+                            if (tinyDebugMode == true) {
                                 console.warn(format("%s: Behavior %s references unknown behavior group %d.",
                                     this.baseurl, behavior.name, behavior.group));
                             }
@@ -1420,7 +1413,7 @@ if (typeof(BrowserPonies) !== "object") {
                 }
 
                 if (this.stand_behaviors.length === 0) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.warn(format("%s: Pony %s has no (non-skip) non-moving behavior.", this.baseurl, this.name));
                     }
                 } else if (this.mouseover_behaviors.length === 0) {
@@ -1461,7 +1454,7 @@ if (typeof(BrowserPonies) !== "object") {
                 interaction = new Interaction(interaction);
 
                 if (interaction.targets.length === 0) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.warn("Dropping interaction " + interaction.name + " of pony " + this.name +
                             " because it has no targets.");
                     }
@@ -1478,7 +1471,7 @@ if (typeof(BrowserPonies) !== "object") {
                 }
 
                 if (interaction.behaviors.length === 0) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.warn("Dropping interaction " + interaction.name + " of pony " + this.name +
                             " because it has no common behaviors.");
                     }
@@ -1668,7 +1661,7 @@ if (typeof(BrowserPonies) !== "object") {
                         // debug output
                         var pos = this.position();
                         var duration = (this.end_time - this.start_time) / 1000;
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.log(
                                 format('%s does %s%s for %.2f seconds, is at %d x %d and %s. See:',
                                     this.pony.name, this.current_behavior.name,
@@ -2629,19 +2622,7 @@ if (typeof(BrowserPonies) !== "object") {
 
                 this.setTopLeftPosition(pos);
             },
-            /*
-            setImage: function (url) {
-            	if (this.current_imgurl !== url) {
-            		this.img.src = dataUrl('text/html',
-            			'<html><head><title>'+Math.random()+
-            			'</title><style text="text/css">html,body{margin:0;padding:0;background:transparent;}</style><body></body><img src="'+
-            			escapeXml(URL.abs(url))+'"/></html>');
-            		this.img.style.width  = this.current_size.width+"px";
-            		this.img.style.height = this.current_size.height+"px";
-            		this.current_imgurl = url;
-            	}
-            },
-            */
+
             setImage: Gecko ?
                 function(url) {
                     if (this.current_imgurl !== url) {
@@ -2819,7 +2800,7 @@ if (typeof(BrowserPonies) !== "object") {
                         case "behaviorgroup":
                             var group = parseInt(row[1], 10);
                             if (isNaN(group)) {
-                                if (tinydebugBrowserPonies == true) {
+                                if (tinyDebugMode == true) {
                                     console.warn(baseurl + ': illegal behavior group id: ', row[1]);
                                 }
                             } else {
@@ -2864,7 +2845,7 @@ if (typeof(BrowserPonies) !== "object") {
                                         if (row.length > 21) {
                                             behavior.dont_repeat_animation = parseBoolean(row[21]);
                                             if (behavior.dont_repeat_animation) {
-                                                if (tinydebugBrowserPonies == true) {
+                                                if (tinyDebugMode == true) {
                                                     console.warn(baseurl + ': behavior ' + behavior.name +
                                                         ' sets dont_repeat_animation to true, which is not supported by Browser Ponies due to limitations in browsers. ' +
                                                         'Please use a GIF that does not loop instead.');
@@ -2874,7 +2855,7 @@ if (typeof(BrowserPonies) !== "object") {
                                                 behavior.group = parseInt(row[22], 10);
                                                 if (isNaN(behavior.group)) {
                                                     delete behavior.group;
-                                                    if (tinydebugBrowserPonies == true) {
+                                                    if (tinyDebugMode == true) {
                                                         console.warn(baseurl + ': behavior ' + behavior.name +
                                                             ' references illegal behavior group id: ', row[22]);
                                                     }
@@ -2904,7 +2885,7 @@ if (typeof(BrowserPonies) !== "object") {
                                 dont_repeat_animation: row[12] ? parseBoolean(row[12]) : false // XXX: cannot be supported by JavaScript
                             };
                             if (effect.dont_repeat_animation) {
-                                if (tinydebugBrowserPonies == true) {
+                                if (tinyDebugMode == true) {
                                     console.warn(baseurl + ': effect ' + effect.name +
                                         ' sets dont_repeat_animation to true, which is not supported by Browser Ponies due to limitations in browsers. ' +
                                         'Please use a GIF that does not loop instead.');
@@ -2942,7 +2923,7 @@ if (typeof(BrowserPonies) !== "object") {
                                                 filetype = 'audio/x-unknown';
                                             }
                                             if (filetype in speak.files) {
-                                                if (tinydebugBrowserPonies == true) {
+                                                if (tinyDebugMode == true) {
                                                     console.warn(baseurl + ': file type ' + filetype +
                                                         ' of speak line ' + speak.name +
                                                         ' is not unique.');
@@ -2954,7 +2935,7 @@ if (typeof(BrowserPonies) !== "object") {
                                 }
                                 if ('group' in speak && isNaN(speak.group)) {
                                     delete speak.group;
-                                    if (tinydebugBrowserPonies == true) {
+                                    if (tinyDebugMode == true) {
                                         console.warn(baseurl + ': speak line ' + speak.name +
                                             ' references illegal behavior group id: ', row[5]);
                                     }
@@ -2968,7 +2949,7 @@ if (typeof(BrowserPonies) !== "object") {
                             break;
 
                         default:
-                            if (tinydebugBrowserPonies == true) {
+                            if (tinyDebugMode == true) {
                                 console.warn(baseurl + ": Unknown pony setting:", row);
                             }
                     }
@@ -2982,7 +2963,7 @@ if (typeof(BrowserPonies) !== "object") {
                     var effect = effects[i];
                     var behavior = effect.behavior.toLowerCase();
                     if (!has(behaviors_by_name, behavior)) {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.warn(baseurl + ": Effect " + effect.name + " of pony " + pony.name +
                                 " references non-existing behavior " + effect.behavior);
                         }
@@ -3058,7 +3039,7 @@ if (typeof(BrowserPonies) !== "object") {
             addInteraction: function(interaction) {
                 var lowername = interaction.pony.toLowerCase();
                 if (!has(ponies, lowername)) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.error("No such pony:", interaction.pony);
                     }
                     return false;
@@ -3075,14 +3056,14 @@ if (typeof(BrowserPonies) !== "object") {
                     pony = this.convertPony(pony.ini, pony.baseurl);
                 }
                 if (pony.behaviors.length === 0) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.error("Pony " + pony.name + " has no behaviors.");
                     }
                     return false;
                 }
                 var lowername = pony.name.toLowerCase();
                 if (has(ponies, lowername)) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.error("Pony " + pony.name + " already exists.");
                     }
                     return false;
@@ -3107,7 +3088,7 @@ if (typeof(BrowserPonies) !== "object") {
                 else count = parseInt(count);
 
                 if (isNaN(count)) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.error("unexpected NaN value");
                     }
                     return [];
@@ -3148,7 +3129,7 @@ if (typeof(BrowserPonies) !== "object") {
             spawn: function(name, count) {
                 var lowername = name.toLowerCase();
                 if (!has(ponies, lowername)) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.error("No such pony:", name);
                     }
                     return false;
@@ -3159,7 +3140,7 @@ if (typeof(BrowserPonies) !== "object") {
                 } else {
                     count = parseInt(count);
                     if (isNaN(count)) {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.error("unexpected NaN value");
                         }
                         return false;
@@ -3195,7 +3176,7 @@ if (typeof(BrowserPonies) !== "object") {
             unspawn: function(name, count) {
                 var lowername = name.toLowerCase();
                 if (!has(ponies, lowername)) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.error("No such pony:", name);
                     }
                     return false;
@@ -3206,7 +3187,7 @@ if (typeof(BrowserPonies) !== "object") {
                 } else {
                     count = parseInt(count);
                     if (isNaN(count)) {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.error("unexpected NaN value");
                         }
                         return false;
@@ -3307,7 +3288,7 @@ if (typeof(BrowserPonies) !== "object") {
             setInterval: function(ms) {
                 ms = parseInt(ms);
                 if (isNaN(ms)) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.error("unexpected NaN value for interval");
                     }
                 } else if (interval !== ms) {
@@ -3326,7 +3307,7 @@ if (typeof(BrowserPonies) !== "object") {
             setInteractionInterval: function(ms) {
                 ms = Number(ms);
                 if (isNaN(ms)) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.error("unexpected NaN value for interaction interval");
                     }
                 } else {
@@ -3339,7 +3320,7 @@ if (typeof(BrowserPonies) !== "object") {
             setSpeakProbability: function(probability) {
                 probability = Number(probability);
                 if (isNaN(probability)) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.error("unexpected NaN value for speak probability");
                     }
                 } else {
@@ -3358,11 +3339,11 @@ if (typeof(BrowserPonies) !== "object") {
             setVolume: function(value) {
                 value = Number(value);
                 if (isNaN(value)) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.error("unexpected NaN value for volume");
                     }
                 } else if (value < 0 || value > 1) {
-                    if (tinydebugBrowserPonies == true) {
+                    if (tinyDebugMode == true) {
                         console.error("volume out of range", value);
                     }
                 } else {
@@ -3390,7 +3371,7 @@ if (typeof(BrowserPonies) !== "object") {
                     try {
                         enabled = parseBoolean(enabled);
                     } catch (e) {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.error("illegal value for audio enabled", enabled, e);
                         }
                         return;
@@ -3417,7 +3398,7 @@ if (typeof(BrowserPonies) !== "object") {
                     try {
                         showFps = parseBoolean(value);
                     } catch (e) {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.error("illegal value for show fps", value, e);
                         }
                         return;
@@ -3440,7 +3421,7 @@ if (typeof(BrowserPonies) !== "object") {
                     try {
                         preloadAll = parseBoolean(all);
                     } catch (e) {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.error("illegal value for preload all", all, e);
                         }
                         return;
@@ -3457,7 +3438,7 @@ if (typeof(BrowserPonies) !== "object") {
                     try {
                         showLoadProgress = parseBoolean(show);
                     } catch (e) {
-                        if (tinydebugBrowserPonies == true) {
+                        if (tinyDebugMode == true) {
                             console.error(e);
                         }
                         return;
