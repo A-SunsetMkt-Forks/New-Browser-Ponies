@@ -1804,6 +1804,7 @@ if (typeof (BrowserPonies) !== "object") {
             unspawn: function () {
                 this.printLog('unspawn');
                 this._isDead = true;
+                tickRunner(this, 'IS_DEAD');
                 this._tick = {};
                 this._tickIds = [];
 
@@ -2166,14 +2167,7 @@ if (typeof (BrowserPonies) !== "object") {
                     }
                     if (newimg !== this.current_imgurl) {
                         // gif animation bug workaround
-                        var img = this.createImage();
-                        img.style.left = this.img.style.left;
-                        img.style.top = this.img.style.top;
-                        img.style.zIndex = this.img.style.zIndex;
-                        img.src = this.current_imgurl = newimg;
-                        this.img.parentNode.replaceChild(img, this.img);
-                        this.img = img;
-                        this.imgCheck();
+                        this.img.src = this.current_imgurl = newimg;
                     }
                 } : function (value) {
                     this.printLog('setFacingRight 2', value);
@@ -3077,42 +3071,87 @@ if (typeof (BrowserPonies) !== "object") {
                         const DEADZONE = 0.3;
                         let isRight = false;
                         let isStarted = false;
+                        let isDead = false;
 
-                        window.addEventListener("gamepadconnected", (event) => {
+                        const onGamepadConnected = (event) => {
                             if (!gamepad) gamepad = navigator.getGamepads()[event.gamepad.index];
                             if (startByGamepad && !isStarted) {
                                 tinyPony.start();
                                 isStarted = true;
                             }
-                        });
+                        };
 
-                        window.addEventListener("gamepaddisconnected", () => {
+                        const onGamepadDisconnected = () => {
                             gamepad = null;
-                        });
+                        };
+
+                        window.addEventListener("gamepadconnected", onGamepadConnected);
+                        window.addEventListener("gamepaddisconnected", onGamepadDisconnected);
 
                         const applyDeadzone = function (value) {
                             return Math.abs(value) < DEADZONE ? 0 : value;
                         }
 
                         // Move Behavior
-                        const moveBehavior =
-                            tinyPony.hasBehavior('walk') ? 'walk' :
-                                tinyPony.hasBehavior('walking') ? 'walking' :
-                                    tinyPony.hasBehavior('trot') ? 'trot' :
-                                        tinyPony.hasBehavior('trotting') ? 'trotting' :
-                                            tinyPony.hasBehavior('hop') ? 'hop' : null;
+                        const getFromBehaviorList = (bhNames = []) => {
+                            const tryName = (theName) => {
+                                if (tinyPony.hasBehavior(theName))
+                                    return theName;
+                                const tinyBh = theName.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
+                                if (tinyPony.hasBehavior(tinyBh))
+                                    return tinyBh;
+                                return null;
+                            }
 
-                        const standBehavior =
-                            tinyPony.hasBehavior('stand') ? 'stand' :
-                                tinyPony.hasBehavior('idle') ? 'idle' : null;
+                            for (const index in bhNames) {
+                                let selectedBehavior = null;
 
-                        const flyBehavior =
-                            tinyPony.hasBehavior('fly') ? 'fly' :
-                                tinyPony.hasBehavior('flying') ? 'flying' : null;
+                                selectedBehavior = tryName(bhNames[index]);
+                                if (selectedBehavior)
+                                    return selectedBehavior;
+
+                                selectedBehavior = tryName(`${bhNames[index]}1`);
+                                if (selectedBehavior)
+                                    return selectedBehavior;
+
+                                selectedBehavior = tryName(`bat-${bhNames[index]}`);
+                                if (selectedBehavior)
+                                    return selectedBehavior;
+                            }
+                            return null;
+                        };
+
+                        const moveBehavior = getFromBehaviorList([
+                            'walk',
+                            'walking',
+                            'trot',
+                            'trotting',
+                            'slither',
+                            'slithering',
+                            'hop',
+                            'hopping',
+                            'run',
+                            'running',
+                            'fly',
+                            'flying',
+                            'flight',
+                        ]);
+
+                        const standBehavior = getFromBehaviorList(['stand', 'standing', 'idle', 'idling']);
+                        const flyBehavior = getFromBehaviorList(['fly', 'flying', 'flight']);
 
                         // Pony script
-                        tinyPony.addTick(() => {
-                            if (!gamepad) return;
+                        tinyPony.addTick((ponyInst, currentTime) => {
+                            // Is dead
+                            if (typeof currentTime === 'string' && currentTime === 'IS_DEAD') {
+                                window.removeEventListener("gamepadconnected", onGamepadConnected);
+                                window.removeEventListener("gamepaddisconnected", onGamepadDisconnected);
+                                isDead = true;
+                                return;
+                            }
+
+                            // No gamepad
+                            if (!gamepad || isDead) return;
 
                             // Get move
                             const moveX = applyDeadzone(gamepad.axes[0]);
@@ -3152,6 +3191,7 @@ if (typeof (BrowserPonies) !== "object") {
                             start: () => {
                                 tinyPony.start();
                                 tinyPony.setBehavior(standBehavior);
+                                tinyPony.setFacingRight(false);
                             },
                             apiInstance: tinyPony
                         };
