@@ -3046,7 +3046,7 @@ if (typeof (BrowserPonies) !== "object") {
 
                     // Tiny fun! Demo Gamepad to test the instance controller
                     getDemoGamepad(ponyIndex) {
-                        if (typeof ponyIndex !== 'number') throw new Error('Invalid pony index value!');
+                        if (typeof ponyIndex !== 'number') throw new Error('You need to choose an pony instance index to be controlled!');
 
                         // Gamepad detector
                         let gamepadIndex = null;
