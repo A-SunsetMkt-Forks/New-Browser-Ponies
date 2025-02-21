@@ -1896,7 +1896,9 @@ if (typeof (BrowserPonies) !== "object") {
                 var curr = this.rect();
                 var dest = null;
                 var dist;
-                if ((!this.ai_disabled || this.force_behavior_moves) && this.following) {
+                const isAiControl = !this.ai_disabled || this.force_behavior_moves;
+
+                if (isAiControl && this.following) {
                     if (this.following.img.parentNode) {
                         dest = this.dest_position;
                         dest.x = this.following.current_position.x;
@@ -1920,7 +1922,7 @@ if (typeof (BrowserPonies) !== "object") {
                         this.following = null;
                     }
                 } else {
-                    dest = !this.ai_disabled || this.force_behavior_moves ?
+                    dest = isAiControl ?
                         this.dest_position : this.api_dest_position;
                     if (dest) dist = distance(curr, dest);
                 }
@@ -1931,7 +1933,7 @@ if (typeof (BrowserPonies) !== "object") {
                     var dy = dest.y - curr.y;
                     var tdist = this.current_behavior.speed * passedTime * 0.01 * globalSpeed;
 
-                    if (tdist >= dist) {
+                    if (isAiControl ? tdist >= dist : dest) {
                         pos = dest;
                     } else {
                         var scale = tdist / dist;
@@ -1942,7 +1944,7 @@ if (typeof (BrowserPonies) !== "object") {
                     }
 
                     if (pos.x !== dest.x) {
-                        this.setFacingRight(pos.x <= dest.x);
+                        if (isAiControl) this.setFacingRight(pos.x <= dest.x);
                     } else if (this.following) {
                         if (this.current_behavior.auto_select_images) {
                             // TODO: mechanism for selecting behavior for current movement
@@ -1955,7 +1957,7 @@ if (typeof (BrowserPonies) !== "object") {
                                 this.paint_behavior = this.current_behavior.moving;
                             }
                         }
-                        this.setFacingRight(this.following.facing_right);
+                        if (isAiControl) this.setFacingRight(this.following.facing_right);
                     }
                     this.setPosition(pos);
                     if (tinyDebugModeLayer2)
@@ -2898,13 +2900,18 @@ if (typeof (BrowserPonies) !== "object") {
                             getInstance() { return ponyInst; },
 
                             // Tick
-                            addTick: (callback) => tinyValidator(() => {
+                            addTick: (callback) => {
                                 return ponyInst.addTick(callback);
-                            }),
+                            },
 
-                            removeTick: (tickId) => tinyValidator(() => {
+                            removeTick: (tickId) => {
                                 return ponyInst.removeTick(tickId);
-                            }),
+                            },
+
+                            // Set Facing Right
+                            setFacingRight: (isFacingRight) => {
+                                return ponyInst.setFacingRight(isFacingRight);
+                            },
 
                             /*
                                 Set force behavior moves
@@ -2983,6 +2990,57 @@ if (typeof (BrowserPonies) !== "object") {
                                 ponyInst.imgCheck();
                             }
                         };
+                    },
+
+                    // Tiny fun! Demo Gamepad to test the instance controller
+                    startDemoGamepad(ponyIndex) {
+                        // Gamepad detector
+                        let gamepadIndex = null;
+                        const DEADZONE = 0.3;
+                        window.addEventListener("gamepadconnected", (event) => {
+                            gamepadIndex = event.gamepad.index;
+                        });
+
+                        window.addEventListener("gamepaddisconnected", () => {
+                            gamepadIndex = null;
+                        });
+
+                        const applyDeadzone = function (value) {
+                            return Math.abs(value) < DEADZONE ? 0 : value;
+                        }
+
+                        // Get pony
+                        const tinyPony = tinyThis.api.getInstanceController(ponyIndex);
+                        tinyPony.addTick(() => {
+                            // Get gamepad
+                            if (gamepadIndex === null) return;
+                            const gamepad = navigator.getGamepads()[gamepadIndex];
+                            if (!gamepad) return;
+
+                            const moveX = applyDeadzone(gamepad.axes[0]);
+                            const moveY = applyDeadzone(gamepad.axes[1]);
+                            const move = { x: null, y: null };
+
+                            const direction = { x: null, y: null };
+                            if (moveY < 0) direction.y = "up";
+                            else if (moveY > 0) direction.y = "down";
+                            if (moveX < 0) direction.x = "left";
+                            else if (moveX > 0) direction.x = "right";
+
+                            tinyPony.move((curr) => {
+                                move.y = curr.y + Number(Number(tinyThis.getSpeed() + 1) * moveY);
+                                move.x = curr.x + Number(Number(tinyThis.getSpeed() + 1) * moveX);
+                                return move;
+                            });
+
+                            if (moveX === 0 && moveY === 0) tinyPony.setBehavior('stand');
+                            else tinyPony.setBehavior('walk');
+
+                            if (moveX !== 0) tinyPony.setFacingRight(direction.x === 'right');
+                            // if (gamepad.buttons[0].pressed) { }
+                        });
+
+                        tinyPony.start();
                     }
                 };
 
