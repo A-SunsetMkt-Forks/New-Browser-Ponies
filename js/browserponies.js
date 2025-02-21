@@ -1595,6 +1595,10 @@ if (typeof (BrowserPonies) !== "object") {
             this.force_behavior_moves = false;
             this.api_dest_position = null;
 
+            this._tick_counter = 0;
+            this._tickIds = [];
+            this._tick = {};
+
             this.clear();
         };
 
@@ -1607,6 +1611,26 @@ if (typeof (BrowserPonies) !== "object") {
                     args[0] = `[BrowserPonies] [${this.name()}] [${String(args[0])}]`;
                     console.log.apply(console, args);
                 }
+            },
+            addTick: function (tickCall) {
+                if (!this._isDead && typeof tickCall === 'function') {
+                    this._tick_counter++;
+                    this._tick[this._tick_counter] = tickCall;
+                    this._tickIds.push(this._tick_counter);
+                    return this._tick_counter;
+                }
+                return null;
+            },
+            removeTick: function (tickIndex) {
+                if (this._tick[tickIndex]) {
+                    delete this._tick[tickIndex];
+                    const i = this._tickIds.indexOf(tickIndex);
+                    if (i > -1) {
+                        this._tickIds.splice(i, 1);
+                    }
+                    return true;
+                }
+                return false;
             },
             createImage: function () {
                 this.printLog('createImage');
@@ -1752,6 +1776,9 @@ if (typeof (BrowserPonies) !== "object") {
             unspawn: function () {
                 this.printLog('unspawn');
                 this._isDead = true;
+                this._tick = {};
+                this._tickIds = [];
+
                 var currentTime = Date.now();
                 if (this.effects) {
                     for (var i = 0, n = this.effects.length; i < n; ++i) {
@@ -2692,6 +2719,11 @@ if (typeof (BrowserPonies) !== "object") {
             var winsize = windowSize();
 
             for (var i = 0, n = instances.length; i < n; ++i) {
+                for (const i2 in instances[i]._tickIds) {
+                    const tinyCall = instances[i]._tick[instances[i]._tickIds[i2]]
+                    if (typeof tinyCall === 'function')
+                        tinyCall(instances[i], currentTime, timeSpan, winsize);
+                }
                 instances[i].update(currentTime, timeSpan, winsize);
             }
 
@@ -2853,6 +2885,15 @@ if (typeof (BrowserPonies) !== "object") {
 
                             // Get instance
                             getInstance() { return ponyInst; },
+
+                            // Tick
+                            addTick: (callback) => tinyValidator(() => {
+                                return ponyInst.addTick(callback);
+                            }),
+
+                            removeTick: (tickId) => tinyValidator(() => {
+                                return ponyInst.removeTick(tickId);
+                            }),
 
                             /*
                                 Set force behavior moves
