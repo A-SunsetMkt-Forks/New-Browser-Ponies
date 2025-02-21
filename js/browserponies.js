@@ -29,6 +29,7 @@ if (typeof (BrowserPonies) !== "object") {
     const tinyDebugMode = searchParams.get("BrowserPoniesDebug") == "true" ? true : false;
     const tinyDebugModeLayer2 = searchParams.get("BrowserPoniesDebugLayer2") == "true" ? true : false;
     const tinyCharacterDebug = searchParams.get("BrowserPoniesDebugCharacter") == "true" ? true : false;
+    const tcDoubleClickController = searchParams.get("BrowserPoniesDbControlCharacter") == "true" ? true : false;
 
     // Shims:
     (function () {
@@ -1649,7 +1650,6 @@ if (typeof (BrowserPonies) !== "object") {
                     if (evt.touches.length > 1 || (evt.type === "touchend" && evt.touches.length > 0))
                         return;
 
-                    var newEvt = document.createEvent("MouseEvents");
                     var type = null;
                     var touch = null;
                     switch (evt.type) {
@@ -1666,9 +1666,23 @@ if (typeof (BrowserPonies) !== "object") {
                             touch = evt.changedTouches[0];
                             break;
                     }
-                    newEvt.initMouseEvent(type, true, true, evt.target.ownerDocument.defaultView, 1,
-                        touch.screenX, touch.screenY, touch.clientX, touch.clientY,
-                        evt.ctrlKey, evt.altKey, evt.shiftKey, evt.metaKey, 0, null);
+
+                    const newEvt = new MouseEvent(type, {
+                        bubbles: true,
+                        cancelable: true,
+                        view: evt.target.ownerDocument.defaultView,
+                        detail: 1,
+                        screenX: touch.screenX,
+                        screenY: touch.screenY,
+                        clientX: touch.clientX,
+                        clientY: touch.clientY,
+                        ctrlKey: evt.ctrlKey,
+                        altKey: evt.altKey,
+                        shiftKey: evt.shiftKey,
+                        metaKey: evt.metaKey,
+                        button: 0,
+                        relatedTarget: null
+                    });
                     evt.target.dispatchEvent(newEvt);
                 };
                 return tag('img', {
@@ -1689,20 +1703,24 @@ if (typeof (BrowserPonies) !== "object") {
                     ontouchmove: touch,
                     ontouchend: touch,
                     ondblclick: function () {
-                        // debug output
-                        var pos = this.position();
-                        var duration = (this.end_time - this.start_time) / 1000;
-                        if (tinyDebugMode)
-                            console.log(
-                                format('%s does %s%s for %.2f seconds, is at %d x %d and %s. See:',
-                                    this.pony.name, this.current_behavior.name,
-                                    this.current_behavior === this.paint_behavior ? '' :
-                                        ' using ' + this.paint_behavior.name, duration, pos.x, pos.y,
-                                    (this.following ?
-                                        'follows ' + this.following.name() :
-                                        format('wants to go to %d x %d',
-                                            this.dest_position.x, this.dest_position.y))),
-                                this);
+                        if (!dbToDisablePonyAi) {
+                            // debug output
+                            var pos = this.position();
+                            var duration = (this.end_time - this.start_time) / 1000;
+                            if (tinyDebugMode)
+                                console.log(
+                                    format('%s does %s%s for %.2f seconds, is at %d x %d and %s. See:',
+                                        this.pony.name, this.current_behavior.name,
+                                        this.current_behavior === this.paint_behavior ? '' :
+                                            ' using ' + this.paint_behavior.name, duration, pos.x, pos.y,
+                                        (this.following ?
+                                            'follows ' + this.following.name() :
+                                            format('wants to go to %d x %d',
+                                                this.dest_position.x, this.dest_position.y))),
+                                    this);
+                        } else {
+
+                        }
                     }.bind(this),
                     onmousedown: function (event) {
                         // IE 9 supports event.buttons and handles event.button like the w3c says.
@@ -2832,6 +2850,7 @@ if (typeof (BrowserPonies) !== "object") {
         var dragged = null;
         var fpsDisplay = null;
         var volume = 1.0;
+        let dbToDisablePonyAi = tcDoubleClickController;
 
         var getOverlay = function () {
             if (!overlay) {
@@ -2875,7 +2894,7 @@ if (typeof (BrowserPonies) !== "object") {
             }
         });
 
-        class BrowserPonies {
+        class BrowserPoniesInstance {
             constructor() {
                 const tinyThis = this;
                 this.api = {
@@ -3526,6 +3545,7 @@ if (typeof (BrowserPonies) !== "object") {
                         onload(function () {
                             if (this.pony.instances.indexOf(this) === -1) return;
                             instances.push(this);
+                            this.instance_index = instances.length - 1;
                             this.img.style.visibility = 'hidden';
                             getOverlay().appendChild(this.img);
                             this.teleport();
@@ -3536,6 +3556,7 @@ if (typeof (BrowserPonies) !== "object") {
                         }.bind(inst));
                     } else {
                         instances.push(inst);
+                        inst.instance_index = instances.length - 1;
                     }
                     --n;
                 }
@@ -3967,7 +3988,7 @@ if (typeof (BrowserPonies) !== "object") {
                 }
             }
         }
-        return new BrowserPonies();
+        return new BrowserPoniesInstance();
     })();
 
     if (typeof (BrowserPoniesConfig) !== "undefined") {
