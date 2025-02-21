@@ -3045,16 +3045,24 @@ if (typeof (BrowserPonies) !== "object") {
                     },
 
                     // Tiny fun! Demo Gamepad to test the instance controller
-                    getDemoGamepad(ponyIndex) {
+                    getDemoGamepad(ponyIndex, startByGamepad = false) {
                         if (typeof ponyIndex !== 'number') throw new Error('You need to choose an pony instance index to be controlled!');
+
+                        // Get pony
+                        const tinyPony = tinyThis.api.getInstanceController(ponyIndex);
 
                         // Gamepad detector
                         let gamepadIndex = null;
                         const DEADZONE = 0.3;
                         let isRight = false;
+                        let isStarted = false;
 
                         window.addEventListener("gamepadconnected", (event) => {
                             gamepadIndex = event.gamepad.index;
+                            if (startByGamepad && !isStarted) {
+                                tinyPony.start();
+                                isStarted = true;
+                            }
                         });
 
                         window.addEventListener("gamepaddisconnected", () => {
@@ -3065,8 +3073,7 @@ if (typeof (BrowserPonies) !== "object") {
                             return Math.abs(value) < DEADZONE ? 0 : value;
                         }
 
-                        // Get pony
-                        const tinyPony = tinyThis.api.getInstanceController(ponyIndex);
+                        // Pony script
                         tinyPony.addTick(() => {
                             // Get gamepad
                             if (gamepadIndex === null) return;
@@ -3089,8 +3096,9 @@ if (typeof (BrowserPonies) !== "object") {
 
                             // Move character
                             tinyPony.move((curr) => {
-                                move.y = curr.y + Number(Number(tinyThis.getSpeed() + 1) * moveY);
-                                move.x = curr.x + Number(Number(tinyThis.getSpeed() + 1) * moveX);
+                                const speed = tinyThis.getSpeed() + Number(!isFlying ? 1 : 4);
+                                move.y = curr.y + Number(speed * moveY);
+                                move.x = curr.x + Number(speed * moveX);
                                 return move;
                             });
 
@@ -3110,7 +3118,7 @@ if (typeof (BrowserPonies) !== "object") {
                     },
 
                     startDemoGamepad(ponyIndex) {
-                        tinyThis.api.getDemoGamepad(ponyIndex).start();
+                        tinyThis.api.getDemoGamepad(ponyIndex, false).start();
                     }
                 };
 
