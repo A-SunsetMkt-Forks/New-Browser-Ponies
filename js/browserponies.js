@@ -1599,6 +1599,7 @@ if (typeof (BrowserPonies) !== "object") {
             this._tickIds = [];
             this._tick = {};
 
+            this.imgCheck();
             this.clear();
         };
 
@@ -1610,6 +1611,15 @@ if (typeof (BrowserPonies) !== "object") {
                         args.push(arguments[index]);
                     args[0] = `[BrowserPonies] [${this.name()}] [${String(args[0])}]`;
                     console.log.apply(console, args);
+                }
+            },
+            imgCheck: function () {
+                if (this.img) {
+                    if (!this.ai_disabled) {
+                        if (this.img.classList.contains('ai-bot-disabled'))
+                            this.img.classList.remove('ai-bot-disabled');
+                    } else if (!this.img.classList.contains('ai-bot-disabled'))
+                        this.img.classList.add('ai-bot-disabled');
                 }
             },
             addTick: function (tickCall) {
@@ -2147,6 +2157,7 @@ if (typeof (BrowserPonies) !== "object") {
                         img.src = this.current_imgurl = newimg;
                         this.img.parentNode.replaceChild(img, this.img);
                         this.img = img;
+                        this.imgCheck();
                     }
                 } : function (value) {
                     this.printLog('setFacingRight 2', value);
@@ -2960,6 +2971,7 @@ if (typeof (BrowserPonies) !== "object") {
                             start: () => {
                                 ponyInst.ai_disabled = true;
                                 ponyInst.force_behavior_moves = false;
+                                ponyInst.imgCheck();
                                 ponyInst.nextBehavior(true, 'stand');
                             },
 
@@ -2968,6 +2980,7 @@ if (typeof (BrowserPonies) !== "object") {
                                 ponyInst.ai_disabled = false;
                                 ponyInst.api_dest_position = null;
                                 ponyInst.force_behavior_moves = false;
+                                ponyInst.imgCheck();
                             }
                         };
                     }
