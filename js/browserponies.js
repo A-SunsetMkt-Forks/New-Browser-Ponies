@@ -1718,8 +1718,8 @@ if (typeof (BrowserPonies) !== "object") {
                                             format('wants to go to %d x %d',
                                                 this.dest_position.x, this.dest_position.y))),
                                     this);
-                        } else {
-
+                        } else if (dbToDisablePonyAi && !this.ai_disabled) {
+                            BrowserPonies.api.startDemoGamepad(this.instance_index);
                         }
                     }.bind(this),
                     onmousedown: function (event) {
@@ -2147,11 +2147,7 @@ if (typeof (BrowserPonies) !== "object") {
                         this.current_interaction = null;
                     }
 
-                    this.behave(this.randomBehavior(
-                        offscreen,
-                        behaviorName ? behaviorName :
-                            this.ai_disabled ? 'stand' : null
-                    ), offscreen);
+                    this.behave(this.randomBehavior(offscreen, behaviorName || null), offscreen);
                 }
             },
             setFacingRight: Gecko ?
@@ -2944,7 +2940,7 @@ if (typeof (BrowserPonies) !== "object") {
                                 else throw new Error('The pony API of this instance is not enabled.');
                             throw new Error('This pony instance is dead.');
                         };
-                        return {
+                        const tinyPony = {
                             // Is dead
                             isDead() { return ponyInst.isDead(); },
 
@@ -2984,8 +2980,14 @@ if (typeof (BrowserPonies) !== "object") {
                                 Breaklink (Boolean) (default: true)
                             */
                             setBehavior: (behaviorName, breaklink = true) => tinyValidator(() => {
-                                if (ponyInst.ai_disabled)
-                                    return ponyInst.nextBehavior(breaklink, behaviorName);
+                                if (ponyInst.ai_disabled) {
+                                    if (tinyPony.hasBehavior(behaviorName)) {
+                                        ponyInst.nextBehavior(breaklink, behaviorName);
+                                        return true;
+                                    }
+                                    return false;
+                                }
+                                return null;
                             }),
 
                             hasBehavior: (behaviorName) =>
@@ -3041,7 +3043,6 @@ if (typeof (BrowserPonies) !== "object") {
                                 ponyInst.ai_disabled = true;
                                 ponyInst.force_behavior_moves = false;
                                 ponyInst.imgCheck();
-                                ponyInst.nextBehavior(true, 'stand');
                             },
 
                             // Stop API
@@ -3052,6 +3053,7 @@ if (typeof (BrowserPonies) !== "object") {
                                 ponyInst.imgCheck();
                             }
                         };
+                        return tinyPony;
                     },
 
                     // Tick
@@ -3092,6 +3094,22 @@ if (typeof (BrowserPonies) !== "object") {
                             return Math.abs(value) < DEADZONE ? 0 : value;
                         }
 
+                        // Move Behavior
+                        const moveBehavior =
+                            tinyPony.hasBehavior('walk') ? 'walk' :
+                                tinyPony.hasBehavior('walking') ? 'walking' :
+                                    tinyPony.hasBehavior('trot') ? 'trot' :
+                                        tinyPony.hasBehavior('trotting') ? 'trotting' :
+                                            tinyPony.hasBehavior('hop') ? 'hop' : null;
+
+                        const standBehavior =
+                            tinyPony.hasBehavior('stand') ? 'stand' :
+                                tinyPony.hasBehavior('idle') ? 'idle' : null;
+
+                        const flyBehavior =
+                            tinyPony.hasBehavior('fly') ? 'fly' :
+                                tinyPony.hasBehavior('flying') ? 'flying' : null;
+
                         // Pony script
                         tinyPony.addTick(() => {
                             if (!gamepad) return;
@@ -3101,7 +3119,7 @@ if (typeof (BrowserPonies) !== "object") {
                             const moveY = applyDeadzone(gamepad.axes[1]);
                             const move = { x: null, y: null };
                             const isFlying = gamepad.buttons[0].pressed &&
-                                tinyPony.hasBehavior('fly');
+                                flyBehavior;
 
                             // Detect new position
                             const direction = { x: null, y: null };
@@ -3119,8 +3137,8 @@ if (typeof (BrowserPonies) !== "object") {
                             });
 
                             // Change behavior during the movement
-                            if (!isFlying && moveX === 0 && moveY === 0) tinyPony.setBehavior('stand');
-                            else tinyPony.setBehavior(!isFlying ? 'walk' : 'fly');
+                            if (!isFlying && moveX === 0 && moveY === 0) tinyPony.setBehavior(standBehavior);
+                            else tinyPony.setBehavior(!isFlying ? moveBehavior : flyBehavior);
 
                             const newIsRight = direction.x === 'right';
                             if (moveX !== 0 && newIsRight !== isRight) {
@@ -3130,7 +3148,13 @@ if (typeof (BrowserPonies) !== "object") {
                         });
 
                         // Complete
-                        return tinyPony;
+                        return {
+                            start: () => {
+                                tinyPony.start();
+                                tinyPony.setBehavior(standBehavior);
+                            },
+                            apiInstance: tinyPony
+                        };
                     },
 
                     startDemoGamepad(ponyIndex) {
