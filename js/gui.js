@@ -55,18 +55,27 @@ function ponyCode(config) {
 function embedCode(config) {
     var copy = {};
     for (var key in config) {
-        copy[key] = config[key];
+        if (key !== 'allowDemoController')
+            copy[key] = config[key];
     }
     copy.autostart = true;
-    return (
-        '<script type="text/javascript" src="' + PonyScripts['browser-ponies-base'] + '"></script>' +
-        '<script type="text/javascript" src="' + PonyScripts['browser-ponies-script'] + '" id="browser-ponies-script"></script>' +
-        '<script type="text/javascript">/* <![CDATA[ */ ' +
-        '(function (cfg) {' +
-        'BrowserPonies.setBaseUrl(cfg.baseurl);' +
-        'BrowserPonies.loadConfig(BrowserPoniesBaseConfig);' +
-        'BrowserPonies.loadConfig(cfg);' +
-        '})(' + JSON.stringify(copy).replace(/\]\]/g, ']"+"]') + '); /* ]]> */</script>');
+    let text = '<script type="text/javascript" src="' + PonyScripts['browser-ponies-base'] + '"></script>';
+    text += '<script type="text/javascript" src="' + PonyScripts['browser-ponies-script'] + '" id="browser-ponies-script"></script>';
+    text += '<script type="text/javascript">/* <![CDATA[ */ ';
+    text += '(function (cfg) {';
+    text += 'BrowserPonies.setBaseUrl(cfg.baseurl);';
+    text += 'BrowserPonies.loadConfig(BrowserPoniesBaseConfig);';
+    text += 'BrowserPonies.loadConfig(cfg);';
+    if (config.allowDemoController) {
+        text += 'let isFirstTime = true; ';
+        text += 'BrowserPonies.Util.onload(() => { ';
+        text += 'if(isFirstTime) { ';
+        text += 'isFirstTime = false; ';
+        text += 'BrowserPonies.api.getDemoGamepad(0, true); ';
+        text += '} });';
+    }
+    text += '})(' + JSON.stringify(copy).replace(/\]\]/g, ']"+"]') + '); /* ]]> */</script>';
+    return text;
 }
 
 function iframeEmbedCode(config) {

@@ -335,6 +335,7 @@ function setAllZero() {
 function dumpConfig(dontSkip) {
     var config = { baseurl: absUrl('') };
 
+    config.allowDemoController = $('allowdemocontroller').checked;
     config.fadeDuration = getNumberFieldValue($('fade')) * 1000;
     config.volume = getNumberFieldValue($('volume')) / 100;
     config.fps = getNumberFieldValue($('fps'));
@@ -393,5 +394,9 @@ function updateDontSpeak(checked) {
         buttons[i].disabled = checked;
     }
 
+    updateConfig();
+}
+
+function updateAllowDemoController() {
     updateConfig();
 }
