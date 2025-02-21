@@ -2836,6 +2836,9 @@ if (typeof (BrowserPonies) !== "object") {
                     },
 
                     getInstanceController(ponyIndex) {
+                        if (typeof ponyIndex !== 'number')
+                            throw new Error('You need to choose an pony instance index to be controlled!');
+
                         const ponyInst = tinyThis.api.getInstance(ponyIndex);
                         const tinyValidator = (callback) => {
                             if (!ponyInst.isDead())
