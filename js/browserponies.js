@@ -3052,13 +3052,13 @@ if (typeof (BrowserPonies) !== "object") {
                         const tinyPony = tinyThis.api.getInstanceController(ponyIndex);
 
                         // Gamepad detector
-                        let gamepadIndex = null;
+                        let gamepad = navigator.getGamepads()[0] || null;
                         const DEADZONE = 0.3;
                         let isRight = false;
                         let isStarted = false;
 
                         window.addEventListener("gamepadconnected", (event) => {
-                            gamepadIndex = event.gamepad.index;
+                            if (!gamepad) gamepad = navigator.getGamepads()[event.gamepad.index];
                             if (startByGamepad && !isStarted) {
                                 tinyPony.start();
                                 isStarted = true;
@@ -3066,7 +3066,7 @@ if (typeof (BrowserPonies) !== "object") {
                         });
 
                         window.addEventListener("gamepaddisconnected", () => {
-                            gamepadIndex = null;
+                            gamepad = null;
                         });
 
                         const applyDeadzone = function (value) {
@@ -3075,9 +3075,6 @@ if (typeof (BrowserPonies) !== "object") {
 
                         // Pony script
                         tinyPony.addTick(() => {
-                            // Get gamepad
-                            if (gamepadIndex === null) return;
-                            const gamepad = navigator.getGamepads()[gamepadIndex];
                             if (!gamepad) return;
 
                             // Get move
