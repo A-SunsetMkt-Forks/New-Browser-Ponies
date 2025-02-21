@@ -2394,7 +2394,8 @@ if (typeof (BrowserPonies) !== "object") {
 
                 // this changes the image to the new behavior:
                 this.setFacingRight(
-                    pos.x !== this.dest_position.x ?
+                    (!this.ai_disabled || this.force_behavior_moves) &&
+                        pos.x !== this.dest_position.x ?
                         pos.x <= this.dest_position.x :
                         this.facing_right);
 
@@ -2502,10 +2503,8 @@ if (typeof (BrowserPonies) !== "object") {
                         }
                     }
                     return forceMovement ? this.randomBehavior(false) : null;
-                } else {
-                    const behaviors = [...this.pony.dragged_behaviors, ...this.pony.mouseover_behaviors, ...this.pony.random_behaviors];
-                    return behaviors.find(behavior => behavior.name === behaviorName)
-                }
+                } else
+                    return this.pony.all_behaviors.find(behavior => behavior.name === behaviorName)
             },
             loops: function (instance) {
                 while (instance) {
@@ -2724,6 +2723,43 @@ if (typeof (BrowserPonies) !== "object") {
             }
         });
 
+        const tickRunner = (tinyInst, currentTime, timeSpan, winsize, isMain = false) => {
+            for (const i in tinyInst._tickIds) {
+                const tinyCall = tinyInst._tick[tinyInst._tickIds[i]]
+                if (typeof tinyCall === 'function')
+                    !isMain ?
+                        tinyCall(tinyInst, currentTime, timeSpan, winsize) :
+                        tinyCall(currentTime, timeSpan, winsize);
+            }
+        };
+
+        const tickCache = {
+            _tick_counter: 0,
+            _tickIds: [],
+            _tick: {},
+
+            addTick: function (tickCall) {
+                if (typeof tickCall === 'function') {
+                    this._tick_counter++;
+                    this._tick[this._tick_counter] = tickCall;
+                    this._tickIds.push(this._tick_counter);
+                    return this._tick_counter;
+                }
+                return null;
+            },
+            removeTick: function (tickIndex) {
+                if (this._tick[tickIndex]) {
+                    delete this._tick[tickIndex];
+                    const i = this._tickIds.indexOf(tickIndex);
+                    if (i > -1) {
+                        this._tickIds.splice(i, 1);
+                    }
+                    return true;
+                }
+                return false;
+            },
+        };
+
         var lastTime = Date.now();
         var tick = function () {
             if (timer === null) return;
@@ -2731,12 +2767,9 @@ if (typeof (BrowserPonies) !== "object") {
             var timeSpan = currentTime - lastTime;
             var winsize = windowSize();
 
+            tickRunner(tickCache, currentTime, timeSpan, winsize, true);
             for (var i = 0, n = instances.length; i < n; ++i) {
-                for (const i2 in instances[i]._tickIds) {
-                    const tinyCall = instances[i]._tick[instances[i]._tickIds[i2]]
-                    if (typeof tinyCall === 'function')
-                        tinyCall(instances[i], currentTime, timeSpan, winsize);
-                }
+                tickRunner(instances[i], currentTime, timeSpan, winsize);
                 instances[i].update(currentTime, timeSpan, winsize);
             }
 
@@ -2899,6 +2932,9 @@ if (typeof (BrowserPonies) !== "object") {
                             // Get instance
                             getInstance() { return ponyInst; },
 
+                            // Get name
+                            getName() { return ponyInst.pony.name; },
+
                             // Tick
                             addTick: (callback) => {
                                 return ponyInst.addTick(callback);
@@ -2909,9 +2945,9 @@ if (typeof (BrowserPonies) !== "object") {
                             },
 
                             // Set Facing Right
-                            setFacingRight: (isFacingRight) => {
+                            setFacingRight: (isFacingRight) => tinyValidator(() => {
                                 return ponyInst.setFacingRight(isFacingRight);
-                            },
+                            }),
 
                             /*
                                 Set force behavior moves
@@ -2932,6 +2968,13 @@ if (typeof (BrowserPonies) !== "object") {
                                 if (ponyInst.ai_disabled)
                                     return ponyInst.nextBehavior(breaklink, behaviorName);
                             }),
+
+                            hasBehavior: (behaviorName) =>
+                                ponyInst.pony.all_behaviors.findIndex(behavior => behavior.name === behaviorName) > -1 ?
+                                    true : false,
+
+                            getBehavior: (behaviorName) =>
+                                ponyInst.pony.all_behaviors.find(behavior => behavior.name === behaviorName),
 
                             /*
                                 Speak random stuff
@@ -2992,11 +3035,24 @@ if (typeof (BrowserPonies) !== "object") {
                         };
                     },
 
+                    // Tick
+                    addTick: (callback) => {
+                        return tickCache.addTick(callback);
+                    },
+
+                    removeTick: (tickId) => {
+                        return tickCache.removeTick(tickId);
+                    },
+
                     // Tiny fun! Demo Gamepad to test the instance controller
-                    startDemoGamepad(ponyIndex) {
+                    getDemoGamepad(ponyIndex) {
+                        if (typeof ponyIndex !== 'number') throw new Error('Invalid pony index value!');
+
                         // Gamepad detector
                         let gamepadIndex = null;
                         const DEADZONE = 0.3;
+                        let isRight = false;
+
                         window.addEventListener("gamepadconnected", (event) => {
                             gamepadIndex = event.gamepad.index;
                         });
@@ -3017,30 +3073,44 @@ if (typeof (BrowserPonies) !== "object") {
                             const gamepad = navigator.getGamepads()[gamepadIndex];
                             if (!gamepad) return;
 
+                            // Get move
                             const moveX = applyDeadzone(gamepad.axes[0]);
                             const moveY = applyDeadzone(gamepad.axes[1]);
                             const move = { x: null, y: null };
+                            const isFlying = gamepad.buttons[0].pressed &&
+                                tinyPony.hasBehavior('fly');
 
+                            // Detect new position
                             const direction = { x: null, y: null };
                             if (moveY < 0) direction.y = "up";
                             else if (moveY > 0) direction.y = "down";
                             if (moveX < 0) direction.x = "left";
                             else if (moveX > 0) direction.x = "right";
 
+                            // Move character
                             tinyPony.move((curr) => {
                                 move.y = curr.y + Number(Number(tinyThis.getSpeed() + 1) * moveY);
                                 move.x = curr.x + Number(Number(tinyThis.getSpeed() + 1) * moveX);
                                 return move;
                             });
 
-                            if (moveX === 0 && moveY === 0) tinyPony.setBehavior('stand');
-                            else tinyPony.setBehavior('walk');
+                            // Change behavior during the movement
+                            if (!isFlying && moveX === 0 && moveY === 0) tinyPony.setBehavior('stand');
+                            else tinyPony.setBehavior(!isFlying ? 'walk' : 'fly');
 
-                            if (moveX !== 0) tinyPony.setFacingRight(direction.x === 'right');
-                            // if (gamepad.buttons[0].pressed) { }
+                            const newIsRight = direction.x === 'right';
+                            if (moveX !== 0 && newIsRight !== isRight) {
+                                tinyPony.setFacingRight(newIsRight);
+                                isRight = newIsRight;
+                            }
                         });
 
-                        tinyPony.start();
+                        // Complete
+                        return tinyPony;
+                    },
+
+                    startDemoGamepad(ponyIndex) {
+                        tinyThis.api.getDemoGamepad(ponyIndex).start();
                     }
                 };
 
