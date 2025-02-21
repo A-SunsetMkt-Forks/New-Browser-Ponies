@@ -1591,6 +1591,9 @@ if (typeof (BrowserPonies) !== "object") {
             this.pony = pony;
             this.img = this.createImage();
             this.ai_disabled = false;
+            this._isDead = false;
+            this.force_behavior_moves = false;
+            this.api_dest_position = null;
 
             this.clear();
         };
@@ -1676,7 +1679,7 @@ if (typeof (BrowserPonies) !== "object") {
                             this.mouseover = true;
                             // timer === null means paused/not running
                             if (timer !== null) {
-                                this.nextBehavior(true);
+                                if (!this.ai_disabled) this.nextBehavior(true);
                             }
                             event.preventDefault();
                         }
@@ -1688,7 +1691,7 @@ if (typeof (BrowserPonies) !== "object") {
                             if (timer !== null &&
                                 !this.isMouseOverOrDragging() &&
                                 (this.canMouseOver() || this.canDrag())) {
-                                this.nextBehavior(true);
+                                if (!this.ai_disabled) this.nextBehavior(true);
                             }
                         }
                     }.bind(this),
@@ -1743,8 +1746,12 @@ if (typeof (BrowserPonies) !== "object") {
             name: function () {
                 return this.pony.name;
             },
+            isDead: function () {
+                return this._isDead;
+            },
             unspawn: function () {
                 this.printLog('unspawn');
+                this._isDead = true;
                 var currentTime = Date.now();
                 if (this.effects) {
                     for (var i = 0, n = this.effects.length; i < n; ++i) {
@@ -1802,9 +1809,9 @@ if (typeof (BrowserPonies) !== "object") {
                 this.current_interaction = interaction;
                 this.interaction_targets = targets;
             },
-            speak: function (currentTime, speech) {
+            speak: function (currentTime, speech, forceSpeak = false) {
                 this.printLog('speak', currentTime, speech);
-                if (dontSpeak) return;
+                if (!forceSpeak && dontSpeak) return;
                 if (speech.text) {
                     var duration = Math.max(speech.text.length * 150, 1000);
                     var remove = { at: currentTime + duration };
@@ -1852,8 +1859,7 @@ if (typeof (BrowserPonies) !== "object") {
                 var curr = this.rect();
                 var dest = null;
                 var dist;
-                ////////////////////////////////
-                if (this.following) {
+                if ((!this.ai_disabled || this.force_behavior_moves) && this.following) {
                     if (this.following.img.parentNode) {
                         dest = this.dest_position;
                         dest.x = this.following.current_position.x;
@@ -1877,7 +1883,8 @@ if (typeof (BrowserPonies) !== "object") {
                         this.following = null;
                     }
                 } else {
-                    dest = this.dest_position;
+                    dest = !this.ai_disabled || this.force_behavior_moves ?
+                        this.dest_position : this.api_dest_position;
                     if (dest) dist = distance(curr, dest);
                 }
 
@@ -1989,7 +1996,7 @@ if (typeof (BrowserPonies) !== "object") {
                     this.interaction_wait += interactionInterval;
                 }
 
-                if (currentTime >= this.end_time ||
+                if (!this.ai_disabled && currentTime >= this.end_time ||
                     (this.end_at_dest &&
                         this.dest_position.x === pos.x &&
                         this.dest_position.y === pos.y)) {
@@ -2062,7 +2069,7 @@ if (typeof (BrowserPonies) !== "object") {
                 nearObjects.sort(function (lhs, rhs) { return lhs[0] - rhs[0]; });
                 return nearObjects[0][1];
             },
-            nextBehavior: function (breaklink) {
+            nextBehavior: function (breaklink, behaviorName) {
                 this.printLog('nextBehavior', breaklink);
                 var offscreen = this.isOffscreen();
                 if (!breaklink && this.current_behavior && this.current_behavior.linked) {
@@ -2083,7 +2090,11 @@ if (typeof (BrowserPonies) !== "object") {
                         this.current_interaction = null;
                     }
 
-                    this.behave(this.randomBehavior(offscreen), offscreen);
+                    this.behave(this.randomBehavior(
+                        offscreen,
+                        behaviorName ? behaviorName :
+                            this.ai_disabled ? 'stand' : null
+                    ), offscreen);
                 }
             },
             setFacingRight: Gecko ?
@@ -2174,7 +2185,7 @@ if (typeof (BrowserPonies) !== "object") {
                 } else if (!spoke &&
                     !this.following &&
                     !this.current_interaction) {
-                    this.speakRandom(this.start_time, speakProbability);
+                    if (!this.ai_disabled) this.speakRandom(this.start_time, speakProbability);
                 }
 
                 var pos = this.position();
@@ -2368,7 +2379,7 @@ if (typeof (BrowserPonies) !== "object") {
                     }
                 }
                 this.effects = neweffects;
-                if (tinyDebugModeLayer2) {
+                if (!this.ai_disabled && tinyDebugModeLayer2) {
                     let msg;
                     if (this.following) {
                         msg = "following " + behavior.follow;
@@ -2391,14 +2402,15 @@ if (typeof (BrowserPonies) !== "object") {
                         " seconds");
                 }
             },
-            teleport: function () {
+            teleport: function (newCords) {
                 this.printLog('teleport');
                 var winsize = windowSize();
                 var size = this.size();
-                this.setTopLeftPosition({
+                const cords = typeof newCords === 'function' ? newCords(winsize, size) : newCords;
+                this.setTopLeftPosition(!cords ? {
                     x: Math.random() * (winsize.width - size.width),
                     y: Math.random() * (winsize.height - size.height)
-                });
+                } : cords);
             },
             speakRandom: function (start_time, speak_probability) {
                 this.printLog('speakRandom', start_time, speak_probability);
@@ -2415,40 +2427,45 @@ if (typeof (BrowserPonies) !== "object") {
                     this.speak(start_time, randomSelect(filtered));
                 }
             },
-            randomBehavior: function (forceMovement) {
-                this.printLog('randomBehavior', forceMovement);
-                var behaviors;
-                var current_group = this.current_behavior ? this.current_behavior.group : 0;
+            randomBehavior: function (forceMovement, behaviorName) {
+                if (!behaviorName) {
+                    var behaviors;
+                    var current_group = this.current_behavior ? this.current_behavior.group : 0;
 
-                if (this === dragged && this.canDrag()) {
-                    behaviors = this.pony.dragged_behaviors;
-                } else if (this.mouseover && this.canMouseOver()) {
-                    behaviors = this.pony.mouseover_behaviors;
-                } else {
-                    behaviors = this.pony.random_behaviors;
-                }
-
-                var sumprob = 0;
-                var filtered = [];
-                for (var i = 0, n = behaviors.length; i < n; ++i) {
-                    var behavior = behaviors[i];
-                    // don't filter looping behaviors because getNearestInstance filteres
-                    // looping instances and then it just degrades to a standard behavior
-                    if (forceMovement && !behavior.isMoving()) continue;
-                    if (current_group !== 0 && behavior.group !== 0 && behavior.group !== current_group) continue;
-                    sumprob += behavior.probability;
-                    filtered.push(behavior);
-                }
-                var dice = Math.random() * sumprob;
-                var diceiter = 0;
-                for (var i = 0, n = filtered.length; i < n; ++i) {
-                    var behavior = filtered[i];
-                    diceiter += behavior.probability;
-                    if (dice <= diceiter) {
-                        return behavior;
+                    if (this === dragged && this.canDrag()) {
+                        behaviors = this.pony.dragged_behaviors;
+                    } else if (this.mouseover && this.canMouseOver()) {
+                        behaviors = this.pony.mouseover_behaviors;
+                    } else {
+                        behaviors = this.pony.random_behaviors;
                     }
+
+                    var sumprob = 0;
+                    var filtered = [];
+                    for (var i = 0, n = behaviors.length; i < n; ++i) {
+                        var behavior = behaviors[i];
+                        // don't filter looping behaviors because getNearestInstance filteres
+                        // looping instances and then it just degrades to a standard behavior
+                        if (forceMovement && !behavior.isMoving()) continue;
+                        if (current_group !== 0 && behavior.group !== 0 && behavior.group !== current_group) continue;
+                        sumprob += behavior.probability;
+                        filtered.push(behavior);
+                    }
+                    var dice = Math.random() * sumprob;
+                    var diceiter = 0;
+                    for (var i = 0, n = filtered.length; i < n; ++i) {
+                        var behavior = filtered[i];
+                        diceiter += behavior.probability;
+                        if (dice <= diceiter) {
+                            this.printLog('randomBehavior', behavior.name, behavior);
+                            return behavior;
+                        }
+                    }
+                    return forceMovement ? this.randomBehavior(false) : null;
+                } else {
+                    const behaviors = [...this.pony.dragged_behaviors, ...this.pony.mouseover_behaviors, ...this.pony.random_behaviors];
+                    return behaviors.find(behavior => behavior.name === behaviorName)
                 }
-                return forceMovement ? this.randomBehavior(false) : null;
             },
             loops: function (instance) {
                 while (instance) {
@@ -2775,34 +2792,174 @@ if (typeof (BrowserPonies) !== "object") {
                 var inst = dragged;
                 dragged = null;
                 if (timer !== null) {
-                    inst.nextBehavior();
+                    if (!inst.ai_disabled) inst.nextBehavior();
                 }
             }
         });
 
-        const changePonyAiStatus = (ponyIndex, stopAi) => {
-            const executeScript = (ponyInst) =>
-                ponyInst.ai_disabled = stopAi;
-            if (typeof ponyIndex !== 'undefined') {
-                if (instances[ponyIndex]) {
-                    executeScript(instances[ponyIndex]);
-                    return true;
-                }
-                return false;
-            } else
-                for (const index in instances)
-                    executeScript(instances[index]);
-            return true;
-        };
+        class BrowserPonies {
+            constructor() {
+                const tinyThis = this;
+                this.api = {
+                    // Execute script in pony instances
+                    _executeInInstances: function (ponyIndex, executeScript) {
+                        if (typeof ponyIndex !== 'undefined') {
+                            if (instances[ponyIndex]) {
+                                executeScript(instances[ponyIndex]);
+                                return true;
+                            }
+                            return false;
+                        } else
+                            for (const index in instances)
+                                executeScript(instances[index]);
+                        return true;
+                    },
 
-        return {
-            stopAi: function (ponyIndex) {
-                return changePonyAiStatus(ponyIndex, true);
-            },
-            startAi: function (ponyIndex) {
-                return changePonyAiStatus(ponyIndex, false);
-            },
-            convertPony: function (ini, baseurl) {
+                    _executeInInstance: function (ponyIndex, executeScript) {
+                        if (instances[ponyIndex]) {
+                            return executeScript(instances[ponyIndex]);
+                        }
+                        return null;
+                    },
+
+                    getInstance(ponyIndex) {
+                        if (instances[ponyIndex]) return instances[ponyIndex];
+                        return null;
+                    },
+
+                    getInstances(filter) {
+                        const items = [];
+                        for (const index in instances)
+                            if (typeof filter !== 'function' || filter(instances[index]))
+                                items.push(instances[index]);
+                        return items;
+                    },
+
+                    getInstanceController(ponyIndex) {
+                        const ponyInst = tinyThis.api.getInstance(ponyIndex);
+                        const tinyValidator = (callback) => {
+                            if (!ponyInst.isDead())
+                                if (ponyInst.ai_disabled)
+                                    return callback();
+                                else throw new Error('The pony API of this instance is not enabled.');
+                            throw new Error('This pony instance is dead.');
+                        };
+                        return {
+                            // Is dead
+                            isDead() { return ponyInst.isDead(); },
+
+                            // Get instance
+                            getInstance() { return ponyInst; },
+
+                            /*
+                                Set force behavior moves
+                                forceBehaviorMoves (Boolean) (default: true)
+                            */
+                            forceBehaviorMoves: (forceBehaviorMoves = true) => tinyValidator(() => {
+                                ponyInst.force_behavior_moves = typeof forceBehaviorMoves === 'boolean' ?
+                                    forceBehaviorMoves : false;
+                            }),
+
+                            /*
+                                Set behavior
+                                Pony Index (Number)
+                                Behavior Name (String)
+                                Breaklink (Boolean) (default: true)
+                            */
+                            setBehavior: (behaviorName, breaklink = true) => tinyValidator(() => {
+                                if (ponyInst.ai_disabled)
+                                    return ponyInst.nextBehavior(breaklink, behaviorName);
+                            }),
+
+                            /*
+                                Speak random stuff
+                                Speak Probability (Number) (default: 1)
+                                Start Time (Date) (default: Date.now())
+                            */
+                            speakRandom: (speakProbability = 1, startTime = Date.now()) => tinyValidator(() => {
+                                if (ponyInst.ai_disabled)
+                                    return ponyInst.speakRandom(startTime, speakProbability);
+                            }),
+
+                            /*
+                                Speak
+        
+                                Speak data: { text: 'text test', files: 'file url' OR ['file url'] }
+                                Force Speak (Boolean) (default: true)
+                                Start Time (Date) (default: Date.now())
+                            */
+                            speak: (speakData = { text: '...' }, forceSpeak = true, startTime = Date.now()) => tinyValidator(() => {
+                                if (ponyInst.ai_disabled)
+                                    return ponyInst.speak(startTime, speakData, forceSpeak);
+                            }),
+
+                            /*
+                                Teleport
+                                cords: { x: 0, y: 0 }
+                            */
+                            teleport: (cords) => tinyValidator(() => {
+                                if (ponyInst.ai_disabled)
+                                    return ponyInst.teleport(cords);
+                            }),
+
+                            /*
+                                Move
+                                cords: { x: 0, y: 0 } or func to use the "curr" value 
+                            */
+                            move: (cords) => tinyValidator(() => {
+                                ponyInst.api_dest_position = cords ?
+                                    typeof cords !== 'function' ?
+                                        { x: cords.x, y: cords.y } : cords(ponyInst.rect()) : null;
+                            }),
+
+                            // Start API
+                            start: () => {
+                                ponyInst.ai_disabled = true;
+                                ponyInst.force_behavior_moves = false;
+                                ponyInst.nextBehavior(true, 'stand');
+                            },
+
+                            // Stop API
+                            stop: () => {
+                                ponyInst.ai_disabled = false;
+                                ponyInst.api_dest_position = null;
+                                ponyInst.force_behavior_moves = false;
+                            }
+                        };
+                    }
+                };
+
+                // expose a few utils:
+                this.Util = {
+                    setOpacity: setOpacity,
+                    extend: extend,
+                    tag: extend(tag, { add: add }),
+                    has: has,
+                    format: format,
+                    partial: partial,
+                    observe: observe,
+                    stopObserving: stopObserving,
+                    IE: IE,
+                    Opera: Opera,
+                    Gecko: Gecko,
+                    HasAudio: HasAudio,
+                    BaseZIndex: BaseZIndex,
+                    onload: onload,
+                    onprogress: onprogress,
+                    $: $,
+                    randomSelect: randomSelect,
+                    dataUrl: dataUrl,
+                    escapeXml: escapeXml,
+                    Base64: Base64,
+                    PonyINI: PonyINI,
+                    getOverlay: getOverlay,
+                    parseBoolean: parseBoolean,
+                    parsePoint: parsePoint,
+                    URL: URL
+                }
+            }
+
+            convertPony(ini, baseurl) {
                 var rows = PonyINI.parse(ini);
                 var pony = {
                     baseurl: baseurl || "",
@@ -3009,8 +3166,9 @@ if (typeof (BrowserPonies) !== "object") {
                 }
 
                 return pony;
-            },
-            convertInteractions: function (ini) {
+            }
+
+            convertInteractions(ini) {
                 var rows = PonyINI.parse(ini);
                 var interactions = [];
 
@@ -3045,16 +3203,18 @@ if (typeof (BrowserPonies) !== "object") {
                 }
 
                 return interactions;
-            },
-            addInteractions: function (interactions) {
+            }
+
+            addInteractions(interactions) {
                 if (typeof (interactions) === "string") {
                     interactions = this.convertInteractions(interactions);
                 }
                 for (var i = 0, n = interactions.length; i < n; ++i) {
                     this.addInteraction(interactions[i]);
                 }
-            },
-            addInteraction: function (interaction) {
+            }
+
+            addInteraction(interaction) {
                 var lowername = interaction.pony.toLowerCase();
                 if (!has(ponies, lowername)) {
                     if (tinyDebugMode)
@@ -3062,13 +3222,15 @@ if (typeof (BrowserPonies) !== "object") {
                     return false;
                 }
                 return ponies[lowername].addInteraction(interaction);
-            },
-            addPonies: function (ponies) {
+            }
+
+            addPonies(ponies) {
                 for (var i = 0, n = ponies.length; i < n; ++i) {
                     this.addPony(ponies[i]);
                 }
-            },
-            addPony: function (pony) {
+            }
+
+            addPony(pony) {
                 if (pony.ini) {
                     pony = this.convertPony(pony.ini, pony.baseurl);
                 }
@@ -3085,20 +3247,23 @@ if (typeof (BrowserPonies) !== "object") {
                 }
                 ponies[lowername] = new Pony(pony);
                 return true;
-            },
-            removePonies: function (ponies) {
+            }
+
+            removePonies(ponies) {
                 for (var i = 0, n = ponies.length; i < n; ++i) {
                     this.removePony(ponies[i]);
                 }
-            },
-            removePony: function (name) {
+            }
+
+            removePony(name) {
                 var lowername = name.toLowerCase();
                 if (has(ponies, lowername)) {
                     ponies[lowername].unspawnAll();
                     delete ponies[lowername];
                 }
-            },
-            spawnRandom: function (count) {
+            }
+
+            spawnRandom(count) {
                 if (count === undefined) count = 1;
                 else count = parseInt(count);
 
@@ -3139,8 +3304,9 @@ if (typeof (BrowserPonies) !== "object") {
                     --count;
                 }
                 return spawned;
-            },
-            spawn: function (name, count) {
+            }
+
+            spawn(name, count) {
                 var lowername = name.toLowerCase();
                 if (!has(ponies, lowername)) {
                     if (tinyDebugMode)
@@ -3184,8 +3350,9 @@ if (typeof (BrowserPonies) !== "object") {
                     --n;
                 }
                 return true;
-            },
-            unspawn: function (name, count) {
+            }
+
+            unspawn(name, count) {
                 var lowername = name.toLowerCase();
                 if (!has(ponies, lowername)) {
                     if (tinyDebugMode)
@@ -3212,30 +3379,35 @@ if (typeof (BrowserPonies) !== "object") {
                     }
                 }
                 return true;
-            },
-            unspawnAll: function () {
+            }
+
+            unspawnAll() {
                 for (var name in ponies) {
                     ponies[name].unspawnAll();
                 }
-            },
-            clear: function () {
+            }
+
+            clear() {
                 this.unspawnAll();
                 ponies = {};
-            },
-            preloadAll: function () {
+            }
+
+            preloadAll() {
                 for (var name in ponies) {
                     ponies[name].preload();
                 }
-            },
-            preloadSpawned: function () {
+            }
+
+            preloadSpawned() {
                 for (var name in ponies) {
                     var pony = ponies[name];
                     if (pony.instances.length > 0) {
                         pony.preload();
                     }
                 }
-            },
-            start: function () {
+            }
+
+            start() {
                 if (preloadAll) {
                     this.preloadAll();
                 } else {
@@ -3260,11 +3432,13 @@ if (typeof (BrowserPonies) !== "object") {
                         timer = setTimeout(tick, 0);
                     }
                 });
-            },
-            timer: function () {
+            }
+
+            timer() {
                 return timer;
-            },
-            stop: function () {
+            }
+
+            stop() {
                 if (overlay) {
                     overlay.parentNode.removeChild(overlay);
                     overlay.innerHTML = '';
@@ -3275,14 +3449,16 @@ if (typeof (BrowserPonies) !== "object") {
                     clearTimeout(timer);
                     timer = null;
                 }
-            },
-            pause: function () {
+            }
+
+            pause() {
                 if (timer !== null) {
                     clearTimeout(timer);
                     timer = null;
                 }
-            },
-            resume: function () {
+            }
+
+            resume() {
                 if (preloadAll) {
                     this.preloadAll();
                 } else {
@@ -3294,8 +3470,9 @@ if (typeof (BrowserPonies) !== "object") {
                         timer = setTimeout(tick, 0);
                     }
                 });
-            },
-            setInterval: function (ms) {
+            }
+
+            setInterval(ms) {
                 ms = parseInt(ms);
                 if (isNaN(ms)) {
                     if (tinyDebugMode)
@@ -3303,17 +3480,21 @@ if (typeof (BrowserPonies) !== "object") {
                 } else if (interval !== ms) {
                     interval = ms;
                 }
-            },
-            getInterval: function () {
+            }
+
+            getInterval() {
                 return interval;
-            },
-            setFps: function (fps) {
+            }
+
+            setFps(fps) {
                 this.setInterval(1000 / Number(fps));
-            },
-            getFps: function () {
+            }
+
+            getFps() {
                 return 1000 / interval;
-            },
-            setInteractionInterval: function (ms) {
+            }
+
+            setInteractionInterval(ms) {
                 ms = Number(ms);
                 if (isNaN(ms)) {
                     if (tinyDebugMode)
@@ -3321,11 +3502,13 @@ if (typeof (BrowserPonies) !== "object") {
                 } else {
                     interactionInterval = ms;
                 }
-            },
-            getInteractionInterval: function () {
+            }
+
+            getInteractionInterval() {
                 return interactionInterval;
-            },
-            setSpeakProbability: function (probability) {
+            }
+
+            setSpeakProbability(probability) {
                 probability = Number(probability);
                 if (isNaN(probability)) {
                     if (tinyDebugMode)
@@ -3333,17 +3516,21 @@ if (typeof (BrowserPonies) !== "object") {
                 } else {
                     speakProbability = probability;
                 }
-            },
-            getSpeakProbability: function () {
+            }
+
+            getSpeakProbability() {
                 return speakProbability;
-            },
-            setDontSpeak: function (value) {
+            }
+
+            setDontSpeak(value) {
                 dontSpeak = !!value;
-            },
-            isDontSpeak: function () {
+            }
+
+            isDontSpeak() {
                 return dontSpeak;
-            },
-            setVolume: function (value) {
+            }
+
+            setVolume(value) {
                 value = Number(value);
                 if (isNaN(value)) {
                     if (tinyDebugMode)
@@ -3355,23 +3542,29 @@ if (typeof (BrowserPonies) !== "object") {
                     volume = value;
                 }
 
-            },
-            getVolume: function () {
+            }
+
+            getVolume() {
                 return volume;
-            },
-            setBaseUrl: function (url) {
+            }
+
+            setBaseUrl(url) {
                 globalBaseUrl = URL.fix(url);
-            },
-            getBaseUrl: function () {
+            }
+
+            getBaseUrl() {
                 return globalBaseUrl;
-            },
-            setSpeed: function (speed) {
+            }
+
+            setSpeed(speed) {
                 globalSpeed = Number(speed);
-            },
-            getSpeed: function () {
+            }
+
+            getSpeed() {
                 return globalSpeed;
-            },
-            setAudioEnabled: function (enabled) {
+            }
+
+            setAudioEnabled(enabled) {
                 if (typeof (enabled) === "string") {
                     try {
                         enabled = parseBoolean(enabled);
@@ -3393,11 +3586,13 @@ if (typeof (BrowserPonies) !== "object") {
                 } else {
                     audioEnabled = enabled;
                 }
-            },
-            isAudioEnabled: function () {
+            }
+
+            isAudioEnabled() {
                 return audioEnabled;
-            },
-            setShowFps: function (value) {
+            }
+
+            setShowFps(value) {
                 if (typeof (value) === "string") {
                     try {
                         showFps = parseBoolean(value);
@@ -3415,11 +3610,13 @@ if (typeof (BrowserPonies) !== "object") {
                     }
                     fpsDisplay = null;
                 }
-            },
-            isShowFps: function () {
+            }
+
+            isShowFps() {
                 return showFps;
-            },
-            setPreloadAll: function (all) {
+            }
+
+            setPreloadAll(all) {
                 if (typeof (all) === "string") {
                     try {
                         preloadAll = parseBoolean(all);
@@ -3431,11 +3628,13 @@ if (typeof (BrowserPonies) !== "object") {
                 } else {
                     preloadAll = !!all;
                 }
-            },
-            isPreloadAll: function () {
+            }
+
+            isPreloadAll() {
                 return preloadAll;
-            },
-            setShowLoadProgress: function (show) {
+            }
+
+            setShowLoadProgress(show) {
                 if (typeof (show) === "string") {
                     try {
                         showLoadProgress = parseBoolean(show);
@@ -3447,23 +3646,29 @@ if (typeof (BrowserPonies) !== "object") {
                 } else {
                     showLoadProgress = !!show;
                 }
-            },
-            isShowLoadProgress: function () {
+            }
+
+            isShowLoadProgress() {
                 return showLoadProgress;
-            },
-            getFadeDuration: function () {
+            }
+
+            getFadeDuration() {
                 return fadeDuration;
-            },
-            setFadeDuration: function (ms) {
+            }
+
+            setFadeDuration(ms) {
                 fadeDuration = Number(ms);
-            },
-            running: function () {
+            }
+
+            running() {
                 return timer !== null;
-            },
-            ponies: function () {
+            }
+
+            ponies() {
                 return ponies;
-            },
-            loadConfig: function (config) {
+            }
+
+            loadConfig(config) {
                 if ('baseurl' in config) {
                     this.setBaseUrl(config.baseurl);
                 }
@@ -3529,9 +3734,10 @@ if (typeof (BrowserPonies) !== "object") {
                 if (config.autostart && timer === null) {
                     this.start();
                 }
-            },
+            }
+
             // currently excluding ponies and interactions
-            dumpConfig: function () {
+            dumpConfig() {
                 var config = {};
                 config.baseurl = this.getBaseUrl();
                 config.speed = this.getSpeed();
@@ -3556,9 +3762,9 @@ if (typeof (BrowserPonies) !== "object") {
                 }
 
                 return config;
-            },
+            }
 
-            togglePoniesToBackground: function () {
+            togglePoniesToBackground() {
                 if (typeof (toggleBrowserPoniesToBackground) === "undefined") {
                     alert("This website does not support bringing Browser Ponies to the background.");
                 } else {
@@ -3568,37 +3774,9 @@ if (typeof (BrowserPonies) !== "object") {
                         alert("Error toggling Browser Ponies to the background:\n\n" + e.name + ': ' + e.message);
                     }
                 }
-            },
-
-            // expose a few utils:
-            Util: {
-                setOpacity: setOpacity,
-                extend: extend,
-                tag: extend(tag, { add: add }),
-                has: has,
-                format: format,
-                partial: partial,
-                observe: observe,
-                stopObserving: stopObserving,
-                IE: IE,
-                Opera: Opera,
-                Gecko: Gecko,
-                HasAudio: HasAudio,
-                BaseZIndex: BaseZIndex,
-                onload: onload,
-                onprogress: onprogress,
-                $: $,
-                randomSelect: randomSelect,
-                dataUrl: dataUrl,
-                escapeXml: escapeXml,
-                Base64: Base64,
-                PonyINI: PonyINI,
-                getOverlay: getOverlay,
-                parseBoolean: parseBoolean,
-                parsePoint: parsePoint,
-                URL: URL
             }
-        };
+        }
+        return new BrowserPonies();
     })();
 
     if (typeof (BrowserPoniesConfig) !== "undefined") {
