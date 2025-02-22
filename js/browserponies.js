@@ -339,7 +339,7 @@ if (typeof (BrowserPonies) !== "object") {
                 return URL.fix(baseurl);
             },
             fix: function (url) {
-                return url.replace(/^https?:\/\/web\d?\.student\.tuwien\.ac\.at\/~e0427417\/browser-ponies\//, "https://jackieapkon.github.com/Browser-Ponies/");
+                return url.replace(/^https?:\/\/web\d?\.student\.tuwien\.ac\.at\/~e0427417\/browser-ponies\//, "https://browser.pony.house/");
             }
         });
 
