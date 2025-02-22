@@ -3049,7 +3049,7 @@ if (typeof (BrowserPonies) !== "object") {
 
                         // Gamepad detector
                         let gamepads = [];
-                        let gamepad = navigator.getGamepads()[0] || null;
+                        let gamepad = navigator.getGamepads()[0] ? 0 : null;
                         const DEADZONE = 0.3;
                         let isRight = false;
                         let isStarted = false;
@@ -3058,17 +3058,15 @@ if (typeof (BrowserPonies) !== "object") {
                         const onGamepadConnected = (event) => {
                             gamepads = navigator.getGamepads();
                             const newGamepad = gamepads[event.gamepad.index];
-                            if (newGamepad) gamepad = newGamepad;
+                            if (newGamepad && (
+                                gamepad === null || !gamepad.id === newGamepad.id
+                            )) gamepad = event.gamepad.index;
 
                             if (startByGamepad && !isStarted) {
                                 tinyPony.start();
                                 isStarted = true;
                             }
                         };
-
-                        /* const onGamepadDisconnected = () => {
-                            gamepad = null;
-                        }; */
 
                         window.addEventListener("gamepadconnected", onGamepadConnected);
                         // window.addEventListener("gamepaddisconnected", onGamepadDisconnected);
@@ -3136,13 +3134,14 @@ if (typeof (BrowserPonies) !== "object") {
                             }
 
                             // No gamepad
-                            if (!gamepad || isDead) return;
+                            const gp = gamepads[gamepad];
+                            if (!gp || isDead) return;
 
                             // Get move
-                            const moveX = applyDeadzone(gamepad.axes[0]);
-                            const moveY = applyDeadzone(gamepad.axes[1]);
+                            const moveX = applyDeadzone(gp.axes[0]);
+                            const moveY = applyDeadzone(gp.axes[1]);
                             const move = { x: null, y: null };
-                            const isFlying = gamepad.buttons[0].pressed &&
+                            const isFlying = gp.buttons[0].pressed &&
                                 flyBehavior;
 
                             // Detect new position
