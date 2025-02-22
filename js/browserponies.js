@@ -616,15 +616,6 @@ if (typeof (BrowserPonies) !== "object") {
             DownRight: 7
         };
 
-        var movementName = function (mov) {
-            for (var name in Movements) {
-                if (Movements[name] === mov) {
-                    return name;
-                }
-            }
-            return "Not a Movement";
-        };
-
         var AllowedMoves = {
             None: 0,
             HorizontalOnly: 1,
@@ -668,15 +659,6 @@ if (typeof (BrowserPonies) !== "object") {
             oga: 'audio/ogg',
             flac: 'audio/ogg;codecs="flac"',
             spx: 'audio/ogg;codecs="speex"'
-        };
-
-        var locationName = function (loc) {
-            for (var name in Locations) {
-                if (Locations[name] === loc) {
-                    return name;
-                }
-            }
-            return "Not a Location";
         };
 
         var Interaction = function Interaction(interaction) {
@@ -3066,6 +3048,7 @@ if (typeof (BrowserPonies) !== "object") {
                         const tinyPony = tinyThis.api.getInstanceController(ponyIndex);
 
                         // Gamepad detector
+                        let gamepads = [];
                         let gamepad = navigator.getGamepads()[0] || null;
                         const DEADZONE = 0.3;
                         let isRight = false;
@@ -3073,19 +3056,22 @@ if (typeof (BrowserPonies) !== "object") {
                         let isDead = false;
 
                         const onGamepadConnected = (event) => {
-                            if (!gamepad) gamepad = navigator.getGamepads()[event.gamepad.index];
+                            gamepads = navigator.getGamepads();
+                            const newGamepad = gamepads[event.gamepad.index];
+                            if (newGamepad) gamepad = newGamepad;
+
                             if (startByGamepad && !isStarted) {
                                 tinyPony.start();
                                 isStarted = true;
                             }
                         };
 
-                        const onGamepadDisconnected = () => {
+                        /* const onGamepadDisconnected = () => {
                             gamepad = null;
-                        };
+                        }; */
 
                         window.addEventListener("gamepadconnected", onGamepadConnected);
-                        window.addEventListener("gamepaddisconnected", onGamepadDisconnected);
+                        // window.addEventListener("gamepaddisconnected", onGamepadDisconnected);
 
                         const applyDeadzone = function (value) {
                             return Math.abs(value) < DEADZONE ? 0 : value;
@@ -3144,7 +3130,7 @@ if (typeof (BrowserPonies) !== "object") {
                             // Is dead
                             if (typeof currentTime === 'string' && currentTime === 'IS_DEAD') {
                                 window.removeEventListener("gamepadconnected", onGamepadConnected);
-                                window.removeEventListener("gamepaddisconnected", onGamepadDisconnected);
+                                // window.removeEventListener("gamepaddisconnected", onGamepadDisconnected);
                                 isDead = true;
                                 return;
                             }
