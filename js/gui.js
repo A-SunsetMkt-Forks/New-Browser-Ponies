@@ -116,6 +116,7 @@ function updateConfig() {
     delete config.paddock;
     delete config.grass;
 
+    BrowserPonies.setAllowDoubleClickControl(config.allowDoubleClickControl);
     BrowserPonies.setVolume(config.volume);
     BrowserPonies.setFadeDuration(config.fadeDuration);
     BrowserPonies.setFps(config.fps);

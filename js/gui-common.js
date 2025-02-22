@@ -336,6 +336,7 @@ function dumpConfig(dontSkip) {
     var config = { baseurl: absUrl('') };
 
     config.allowDemoController = $('allowdemocontroller').checked;
+    config.allowDoubleClickControl = $('allowdoubleclicktocontrol').checked;
     config.fadeDuration = getNumberFieldValue($('fade')) * 1000;
     config.volume = getNumberFieldValue($('volume')) / 100;
     config.fps = getNumberFieldValue($('fps'));
@@ -398,5 +399,9 @@ function updateDontSpeak(checked) {
 }
 
 function updateAllowDemoController() {
+    updateConfig();
+}
+
+function updateAllowDoubleClickController() {
     updateConfig();
 }

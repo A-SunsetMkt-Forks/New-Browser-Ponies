@@ -29,7 +29,6 @@ if (typeof (BrowserPonies) !== "object") {
     const tinyDebugMode = searchParams.get("BrowserPoniesDebug") == "true" ? true : false;
     const tinyDebugModeLayer2 = searchParams.get("BrowserPoniesDebugLayer2") == "true" ? true : false;
     const tinyCharacterDebug = searchParams.get("BrowserPoniesDebugCharacter") == "true" ? true : false;
-    const tcDoubleClickController = searchParams.get("BrowserPoniesDbControlCharacter") == "true" ? true : false;
 
     // Shims:
     (function () {
@@ -2840,7 +2839,7 @@ if (typeof (BrowserPonies) !== "object") {
         var dragged = null;
         var fpsDisplay = null;
         var volume = 1.0;
-        let dbToDisablePonyAi = tcDoubleClickController;
+        let dbToDisablePonyAi = true;
 
         var getOverlay = function () {
             if (!overlay) {
@@ -3747,6 +3746,14 @@ if (typeof (BrowserPonies) !== "object") {
                 });
             }
 
+            getAllowDoubleClickControl() {
+                return dbToDisablePonyAi;
+            }
+
+            setAllowDoubleClickControl(value) {
+                dbToDisablePonyAi = typeof value === 'boolean' ? value : null;
+            }
+
             setInterval(ms) {
                 ms = parseInt(ms);
                 if (isNaN(ms)) {
@@ -4015,6 +4022,7 @@ if (typeof (BrowserPonies) !== "object") {
             dumpConfig() {
                 var config = {};
                 config.allowDemoController = false;
+                config.allowDoubleClickControl = this.getAllowDoubleClickControl();
                 config.baseurl = this.getBaseUrl();
                 config.speed = this.getSpeed();
                 config.speakProbability = this.getSpeakProbability();

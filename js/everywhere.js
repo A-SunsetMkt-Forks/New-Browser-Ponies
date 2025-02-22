@@ -33,6 +33,7 @@ function queryStringToConfig(configStr, delim) {
 
 function setSimpleConfig(config) {
     if ('volume' in config) BrowserPonies.setVolume(config.volume);
+    if ('allowDoubleClickControl' in config) BrowserPonies.setAllowDoubleClickControl(config.allowDoubleClickControl);
     if ('fadeDuration' in config) BrowserPonies.setFadeDuration(config.fadeDuration);
     if ('fps' in config) BrowserPonies.setFps(config.fps);
     if ('speed' in config) BrowserPonies.setSpeed(config.speed);

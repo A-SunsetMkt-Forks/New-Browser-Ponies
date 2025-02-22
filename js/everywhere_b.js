@@ -30,6 +30,7 @@ jQuery("body").ready(function() {
     jQuery("#enableaudio, #showfps, #progressbar").change(function() { updateConfig(); });
     jQuery("#dontspeak").change(function() { updateDontSpeak(this.checked); });
     jQuery("#allowdemocontroller").change(function() { updateAllowDemoController(this.checked); });
+    jQuery("#allowdoubleclicktocontrol").change(function() { updateAllowDoubleClickController(this.checked); });
     jQuery("#speed, #speak, #volume, #fps, #fade").change(function() { numberFieldChanged.call(this, event); });
 
     jQuery("#editurl").submit(function(event) {
