@@ -4021,7 +4021,6 @@ if (typeof (BrowserPonies) !== "object") {
             // currently excluding ponies and interactions
             dumpConfig() {
                 var config = {};
-                config.allowDemoController = false;
                 config.allowDoubleClickControl = this.getAllowDoubleClickControl();
                 config.baseurl = this.getBaseUrl();
                 config.speed = this.getSpeed();
