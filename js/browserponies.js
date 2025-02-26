@@ -393,7 +393,7 @@ if (typeof (BrowserPonies) !== "object") {
                                         element.style[name] = cssValue;
                                     } catch (e) {
                                         if (tinyDebugMode)
-                                            console.error(name + '=' + cssValue + ' ' + e.toString());
+                                            console.error(e);
                                     }
                                 }
                             }
@@ -665,6 +665,7 @@ if (typeof (BrowserPonies) !== "object") {
             this.name = interaction.name;
             this.probability = interaction.probability;
             this.proximity = interaction.proximity === "default" ? 640 : interaction.proximity;
+            this.all = !!interaction.all;
             this.activate = interaction.activate;
             this.delay = interaction.delay;
             this.targets = [];
@@ -730,6 +731,26 @@ if (typeof (BrowserPonies) !== "object") {
                 } else {
                     for (var i = 0; i < targets.length; ++i) {
                         targets[i] = targets[i][1];
+                    }
+                }
+                return targets;
+            },
+
+            reachableTargetsOld: function (pos) {
+                var targets = [];
+                for (var i = 0, n = this.targets.length; i < n; ++i) {
+                    var pony = this.targets[i];
+                    var reachable = false;
+                    for (var j = 0, m = pony.instances.length; j < m; ++j) {
+                        var inst = pony.instances[j];
+                        // XXX: is it me or is the proximity much to low for all these interactions?
+                        if (distance(pos, inst.position()) < this.proximity) {
+                            targets.push(inst);
+                            reachable = true;
+                        }
+                    }
+                    if (this.all && !reachable) {
+                        return [];
                     }
                 }
                 return targets;
@@ -3430,9 +3451,19 @@ if (typeof (BrowserPonies) !== "object") {
 
                 for (var i = 0, n = rows.length; i < n; ++i) {
                     var row = rows[i];
+                    var all = false;
                     var activate = "one";
                     if (row.length > 4) {
-                        activate = row[5].trim().toLowerCase();
+                        all = row[5].trim().toLowerCase();
+                        activate = all;
+
+                        if (all === "true" || all === "all") {
+                            all = true;
+                        }
+                        else if (all === "false" || all == "random" || all === "any") {
+                            all = false;
+                        }
+
                         if (activate === "true" || activate === "all") {
                             activate = "all";
                         } else if (activate == "random" || activate === "any") {
@@ -3445,16 +3476,17 @@ if (typeof (BrowserPonies) !== "object") {
                     }
 
                     var proximity = row[3].trim().toLowerCase();
-                    if (proximity !== "default") proximity = Number(proximity);
+                    if (proximity !== "default") proximity = parseFloat(proximity);
                     interactions.push({
                         name: row[0],
                         pony: row[1],
-                        probability: Number(row[2]),
+                        probability: parseFloat(row[2]),
                         proximity: proximity,
                         targets: row[4],
+                        all: all,
                         activate: activate,
                         behaviors: row[6],
-                        delay: row.length > 7 ? Number(row[7].trim()) : 0
+                        delay: row.length > 7 ? parseFloat(row[7].trim()) : 0
                     });
                 }
 
