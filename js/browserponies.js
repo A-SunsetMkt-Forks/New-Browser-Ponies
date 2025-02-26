@@ -1867,6 +1867,24 @@ if (typeof (BrowserPonies) !== "object") {
                 this.current_interaction = interaction;
                 this.interaction_targets = targets;
             },
+            interactOld: function (currentTime, interaction, targets) {
+                var pony, behavior = randomSelect(interaction.behaviors);
+                this.behave(this.pony.behaviors_by_name[behavior]);
+                if (interaction.all) {
+                    for (var i = 0, n = targets.length; i < n; ++i) {
+                        pony = targets[i];
+                        pony.behave(pony.pony.behaviors_by_name[behavior]);
+                        pony.current_interaction = interaction;
+                    }
+                }
+                else {
+                    pony = randomSelect(targets);
+                    pony.behave(pony.pony.behaviors_by_name[behavior]);
+                    pony.current_interaction = interaction;
+                }
+                this.current_interaction = interaction;
+                this.interaction_targets = targets;
+            },
             speak: function (currentTime, speech, forceSpeak = false) {
                 this.printLog('speak', currentTime, speech);
                 if (!forceSpeak && dontSpeak) return;
