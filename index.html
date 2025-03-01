@@ -99,6 +99,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="#n_api">
+                        API
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="#n_download">
                         Download and License
                     </a>
@@ -176,6 +181,8 @@
             </p>
 
         </div>
+
+        <hr />
 
         <div id="n_bookmarklet">
 
@@ -265,6 +272,8 @@
             </p>
 
         </div>
+
+        <hr />
 
         <div id="n_config">
 
@@ -421,6 +430,8 @@
             </p>
 
         </div>
+
+        <hr />
 
         <div id="n_advanced">
 
@@ -595,6 +606,129 @@
             </p>
 
         </div>
+
+        <hr />
+
+        <div id="n_api">
+
+            <h2>API</h2>
+            <p>
+                You can also use the official API to create your own features in BrowserPonies.
+                The entire API is stored in <code>BrowserPonies.api</code> and <code>BrowserPonies.Util</code>.
+                The information here is for advanced users, so I recommend that you skip this part of the page.
+            </p>
+
+            <h3>Demo</h3>
+            <p>
+                You can run the official demos that are already installed on this page.
+                Even if the user defines that ponies cannot be controlled on the website, you can access your browser's
+                console and activate it manually.
+            </p>
+
+            <h4>BrowserPonies.api.getDemoGamepad(ponyIndex, startByGamepad)</h4>
+            <p>
+                There is a pre-configured gamepad script in the BrowserPonies API, and using this script you will get
+                access to your pony API along with this gamepad.
+                The script will return the "start" function and the "apiInstance" that stores the API of your pony.
+            </p>
+
+            <h4>BrowserPonies.api.getInstanceController(ponyIndex)</h4>
+            <p>
+                The script will return the "apiInstance" that stores the API of your pony. But you will have to manually
+                write the script that starts your API, usually following these instructions:
+            <pre><code>
+tinyPony.start();
+tinyPony.setBehavior('stand');
+tinyPony.setFacingRight(false);
+                </code></pre>
+            </p>
+
+            <h3>Tick</h3>
+            <p>
+                I always recommend you run everything from the BrowserPonies API inside these ticks as they are
+                respecting the FPS setting of BrowserPonies.
+            </p>
+
+            <h4>BrowserPonies.api.addTick(callback)</h4>
+            <p>
+                You just need to add the callback for it to start running along with BrowserPonies.
+                This function will always return to Tick Id to you have the possibility to remove it when you want to
+                uninstall the code.
+            </p>
+
+            <h4>BrowserPonies.api.removeTick(tickId)</h4>
+            <p>
+                Use the Tick Id here to completely uninstall your script.
+            </p>
+
+            <h3>Instances List</h3>
+            <p>
+                You can always have full control of the list of ponies running in BrowserPonies through this API.
+                You just need to know the pony index that is running to access it completely by the API.
+            </p>
+
+            <h4>BrowserPonies.api.getInstance(ponyIndex)</h4>
+            <p>
+                If you know the exact Index of a pony instance, you just need to put the index here to get it instantly.
+            </p>
+
+            <h4>BrowserPonies.api.getInstances(filterCallback)</h4>
+            <p>
+                If you want to get the list of all instances, use this script. You will get the complete list of all
+                ponies in the original index.
+                But remember that if you use the "filterCallback", these index will not match the "getInstance"
+                functions.
+            </p>
+
+            <h2>Pony Instance (tinyPony)</h2>
+            <p>An interface for interacting with a virtual pony instance. TinyPony API allows controlling movement,
+                behaviors, speech, and state management.</p>
+
+            <h2>Methods</h2>
+            <ul class="list-group">
+                <li class="list-group-item"><strong>isDead()</strong> - Returns <code>Boolean</code>. Checks if the pony
+                    instance is removed from BrowserPonies API.</li>
+                <li class="list-group-item"><strong>getInstance()</strong> - Returns <code>Object</code>. Retrieves the
+                    pony instance.</li>
+                <li class="list-group-item"><strong>getName()</strong> - Returns <code>String</code>. Gets the pony's
+                    name.</li>
+                <li class="list-group-item"><strong>addTick(callback)</strong> - Adds a tick event.</li>
+                <li class="list-group-item"><strong>removeTick(tickId)</strong> - Removes a tick event.</li>
+                <li class="list-group-item"><strong>setFacingRight(isFacingRight)</strong> - Updates the pony's facing
+                    direction.</li>
+                <li class="list-group-item"><strong>forceBehaviorMoves(forceBehaviorMoves)</strong> - Enables/disables
+                    forced behavior movements.</li>
+                <li class="list-group-item"><strong>setBehavior(behaviorName, breaklink)</strong> - Sets a behavior.
+                </li>
+                <li class="list-group-item"><strong>hasBehavior(behaviorName)</strong> - Checks if the pony has a
+                    behavior.</li>
+                <li class="list-group-item"><strong>getBehavior(behaviorName)</strong> - Retrieves a behavior object.
+                </li>
+                <li class="list-group-item"><strong>speakRandom(speakProbability, startTime)</strong> - Makes the pony
+                    speak randomly.</li>
+                <li class="list-group-item"><strong>speak(speakData, forceSpeak, startTime)</strong> - Makes the pony
+                    speak.</li>
+                <li class="list-group-item"><strong>teleport(cords)</strong> - Teleports the pony to given coordinates.
+                </li>
+                <li class="list-group-item"><strong>move(cords)</strong> - Moves the pony.</li>
+                <li class="list-group-item"><strong>start()</strong> - Starts the API, enabling manual control.</li>
+                <li class="list-group-item"><strong>stop()</strong> - Stops the API, reverting to AI control.</li>
+            </ul>
+
+            <h2 class="mt-2">Usage Example</h2>
+            <pre>
+                <code>
+const tinyPony = BrowserPonies.api.getInstanceController(0);
+tinyPony.start();
+tinyPony.setBehavior('stand');
+console.log(tinyPony.getName());
+tinyPony.speak({ text: "Hello!" });
+tinyPony.move({ x: 100, y: 200 });
+                </code>
+            </pre>
+        </div>
+
+        <hr />
 
         <div id="n_download">
 
